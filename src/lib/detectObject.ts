@@ -1,0 +1,140 @@
+
+import * as tf from "@tensorflow/tfjs";
+import { renderBoxes } from "./boxRender";
+
+export interface ModelConfig {
+  modelPath: string;
+  maxDetections?: number;
+  iouThreshHold?: number;
+  scoreThreshHold?: number;
+  classes?: string[];
+  inputHeight: number;
+  inputWidth: number;
+}
+
+
+export class ObjectDetectionModel {
+
+  private model: tf.GraphModel | null;
+  public readonly config: Required<ModelConfig>;
+
+  constructor(config: Required<ModelConfig>) {
+    this.config = config
+    this.model = null
+  }
+
+  private warmupModel(): void {
+    // warming up model
+    const dummyInput = tf.ones(this.model!.inputs[0].shape!);
+    this.model!.execute(dummyInput);
+  }
+
+  public async loadModel(): Promise<void> {
+    try {
+      this.model = await tf.loadGraphModel(this.config.modelPath);
+      this.warmupModel();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to load model: ${errorMessage}`);
+    }
+  }
+
+  private prepareInput(dataSource: HTMLVideoElement) {
+    let ratioX: number = 1
+    let ratioY: number = 1
+
+    // prepare input 
+    const inputData: tf.Tensor4D = tf.tidy(() => {
+      const image = tf.browser.fromPixels(dataSource)
+      const [h, w] = image.shape.slice(0, 2)
+
+      const maxSize = Math.max(w, h); // get max size
+      const imgPadded = image.pad([
+        [0, maxSize - h],
+        [0, maxSize - w],
+        [0, 0],
+      ]);
+
+      ratioX = maxSize / w;
+      ratioY = maxSize / h; 
+
+      return tf.image.resizeBilinear(
+        imgPadded as tf.Tensor4D,
+        [this.config.inputWidth, this.config.inputHeight]
+      ).div(255.0).expandDims(0)
+    });
+    return [inputData, ratioX, ratioY]
+  }
+
+  public async detect(dataSource: HTMLVideoElement, canvas: HTMLCanvasElement, callback: () => Promise<void>) {
+
+    tf.engine().startScope();
+    const [inputData, ratioX, ratioY] = this.prepareInput(dataSource)
+    const prediction: tf.Tensor = this.model!.execute(inputData as tf.Tensor) as tf.Tensor
+
+    const result = prediction.squeeze()
+    const transposed = result.transpose()
+
+    const boxes = tf.tidy(() => {
+      const centerX = transposed.slice([0, 0], [-1, 1])
+      const centerY = transposed.slice([0, 1], [-1, 1])
+      const w = transposed.slice([0, 2], [-1, 1])
+      const h = transposed.slice([0, 3], [-1, 1])
+
+      const x1 = tf.sub(centerX, tf.div(w, 2))
+      const y1 = tf.sub(centerY, tf.div(h, 2))
+      const x2 = tf.add(x1, w)
+      const y2 = tf.add(y1, h)
+
+      return tf.concat(
+        [
+          x1, y1, x2, y2
+        ], 1
+      )
+    })
+
+
+    const [scores, classes] = tf.tidy(() => {
+      const rawScores = transposed.slice([0, 4], [-1, 80]).squeeze()
+      console.log(rawScores.shape, transposed.slice([0, 4], [-1, 80]).shape)
+      return [rawScores.max(1), rawScores.argMax(1)]
+    })
+
+    const nms = await tf.image.nonMaxSuppressionAsync(boxes as tf.Tensor2D, scores, 500, 0.45, 0.2); 
+
+    const boxes_data = boxes.gather(nms, 0).dataSync();
+    const classes_data = classes.gather(nms, 0).dataSync();
+    const scores_data = scores.gather(nms, 0).dataSync();
+
+    renderBoxes(canvas, boxes_data as Float32Array, scores_data, classes_data, [ratioX as number, ratioY as number])
+
+    tf.dispose([prediction, transposed, boxes, scores, classes, nms]); 
+
+    callback();
+
+    tf.engine().endScope();
+  }
+
+  public async detectVideoFrame(source: HTMLVideoElement, canvas: HTMLCanvasElement) {
+
+    console.log(source.srcObject)
+    const detectSingleFrame = async () => {
+      if (source.videoWidth === 0 && source.srcObject === null) {
+
+        const ctx = canvas.getContext("2d")!;
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); 
+        return; // handle if source is closed
+      }
+
+      await this.detect(source, canvas, async () => {
+        requestAnimationFrame(detectSingleFrame)
+      })
+    }
+    await detectSingleFrame()
+  }
+
+}
+
+
+
+
