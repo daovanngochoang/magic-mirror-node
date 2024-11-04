@@ -1,6 +1,7 @@
 
 import * as tf from "@tensorflow/tfjs";
 import { renderBoxes } from "./boxRender";
+import { config } from "process";
 
 export interface ModelConfig {
   modelPath: string;
@@ -70,7 +71,7 @@ export class ObjectDetectionModel {
 
     tf.engine().startScope();
     const [inputData, ratioX, ratioY] = this.prepareInput(dataSource)
-    const prediction: tf.Tensor = this.model!.execute(inputData as tf.Tensor) as tf.Tensor
+    const prediction: tf.Tensor = this.model!.predict(inputData as tf.Tensor) as tf.Tensor
 
     const result = prediction.squeeze()
     const transposed = result.transpose()
@@ -96,11 +97,10 @@ export class ObjectDetectionModel {
 
     const [scores, classes] = tf.tidy(() => {
       const rawScores = transposed.slice([0, 4], [-1, 80]).squeeze()
-      console.log(rawScores.shape, transposed.slice([0, 4], [-1, 80]).shape)
       return [rawScores.max(1), rawScores.argMax(1)]
     })
 
-    const nms = await tf.image.nonMaxSuppressionAsync(boxes as tf.Tensor2D, scores, 500, 0.45, 0.2); 
+    const nms = await tf.image.nonMaxSuppressionAsync(boxes as tf.Tensor2D, scores, this.config.maxDetections, this.config.iouThreshHold, this.config.scoreThreshHold); 
 
     const boxes_data = boxes.gather(nms, 0).dataSync();
     const classes_data = classes.gather(nms, 0).dataSync();

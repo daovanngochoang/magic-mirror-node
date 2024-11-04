@@ -38,9 +38,9 @@ const WebcamStream: React.FC<WebcamStreamProps> = ({
     {
       inputWidth: 640,
       inputHeight: 640,
-      maxDetections: 500,
-      iouThreshHold: 0.45,
-      scoreThreshHold: 0.2,
+      maxDetections: 100,
+      iouThreshHold: 0.5,
+      scoreThreshHold: 0.5,
       classes: DATA_CLASS,
       modelPath: "modeljs/model.json"
     }
