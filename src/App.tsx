@@ -1,24 +1,25 @@
-import { Bot } from 'lucide-react'
-import './App.css'
-import WebcamStream from './components/realtime-detector'
+// App.tsx
+import { Bot } from 'lucide-react';
+import './App.css';
+import WebcamStream from './components/realtime-detector';
 
 function App() {
   return (
     <>
-      <div className="w-full flex justify-center items-center">
-        <div className='space-y-10'>
-          <div>
-            <div className='flex justify-center items-center gap-4'>
-              <Bot className="w-8 h-8" />
-              <div className='text-2xl font-semibold'>Real-time Object Detection</div>
+      <div className="fullscreen-container">
+        <WebcamStream />
+        {/* <div className="overlay-content">
+          <div className="header">
+            <div className="icon-title">
+              <Bot className="icon" />
+              <div className="title">Real-time Object Detection</div>
             </div>
-            <p>Live detection application on browser powered by Tensorflow js and Yolov8n</p>
+            <p className="subtitle">Live detection application on browser powered by TensorFlow.js and YOLOv8n</p>
           </div>
-          <WebcamStream />
-        </div>
+        </div> */}
       </div>
     </>
-  )
+  );
 }
 
-export default App
+export default App;

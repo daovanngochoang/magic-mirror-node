@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ObjectDetectionModel } from '@/lib/detectObject';
 import { Camera } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
+import "./WebcamStream.css";
 
 interface WebcamStreamProps {
   initiallyActive?: boolean;
@@ -38,11 +39,11 @@ const WebcamStream: React.FC<WebcamStreamProps> = ({
     {
       inputWidth: 640,
       inputHeight: 640,
-      maxDetections: 100,
-      iouThreshHold: 0.5,
-      scoreThreshHold: 0.5,
+      maxDetections: 50,
+      iouThreshHold: 0.6,
+      scoreThreshHold: 0.4,
       classes: DATA_CLASS,
-      modelPath: "modeljs/model.json"
+      modelPath: "model_yolov8s-oiv7_js/model.json"
     }
   ))
   // Define webcam constraints
@@ -51,7 +52,7 @@ const WebcamStream: React.FC<WebcamStreamProps> = ({
     video: {
       width: model.config.inputWidth,
       height: model.config.inputHeight,
-      facingMode: "environment"
+      facingMode: "user"
     }
   };
 
@@ -135,47 +136,75 @@ const WebcamStream: React.FC<WebcamStreamProps> = ({
   }
 
   return (
-    <Card className="max-w-3xl">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Camera className="h-6 w-6" />
-          Webcam
-        </CardTitle>
-      </CardHeader>
+    // <Card className="max-w-3xl">
+    //   <CardHeader>
+    //     <CardTitle className="flex items-center gap-2">
+    //       <Camera className="h-12 w-12" />
+    //       Webcam
+    //     </CardTitle>
+    //   </CardHeader>
 
-      <CardContent className="space-y-4 flex flex-col justify-center items-center rounded-lg">
-        <div className="relative z-0 rounded-lg bg-slate-100 ">
-          <video
-            ref={videoRef}
-            autoPlay
-            muted
-            onPlay={async () => await model.detectVideoFrame(videoRef.current!, canvasRef.current!)}
-            className="w-[640px] h-[640px] rounded-lg"
-          />
-          <canvas className='absolute z-30 top-0 left-0 rounded-lg' width={640} height={640} ref={canvasRef} />
-        </div>
+    //   <CardContent className="space-y-4 flex flex-col justify-center items-center rounded-lg">
+    //     <div className="relative z-0 rounded-lg bg-slate-100 ">
+    //       <video
+    //         ref={videoRef}
+    //         autoPlay
+    //         muted
+    //         onPlay={async () => await model.detectVideoFrame(videoRef.current!, canvasRef.current!)}
+    //         className="w-[640px] h-[640px] rounded-lg"
+    //       />
+    //       <canvas className='absolute z-30 top-0 left-0 rounded-lg' width={640} height={640} ref={canvasRef} />
+    //     </div>
 
-        <div className="flex justify-center gap-4">
-          {!isCamOpen ? (
-            <Button
-              onClick={startWebcam}
-              className="w-32"
-            >
-              Start Camera
-            </Button>
-          ) : (
-            <Button
-              onClick={stopWebcam}
-              variant="destructive"
-              className="w-32"
-            >
-              Stop Camera
-            </Button>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+    //     <div className="flex justify-center gap-4">
+    //       {!isCamOpen ? (
+    //         <Button
+    //           onClick={startWebcam}
+    //           className="w-32"
+    //         >
+    //           Start Camera
+    //         </Button>
+    //       ) : (
+    //         <Button
+    //           onClick={stopWebcam}
+    //           variant="destructive"
+    //           className="w-32"
+    //         >
+    //           Stop Camera
+    //         </Button>
+    //       )}
+    //     </div>
+    //   </CardContent>
+    // </Card>
+
+    <div className="fullscreen-container">
+      <div className="header">
+        <Camera className="header-icon" />
+        <span className="header-title">Webcam</span>
+      </div>
+
+      <div className="video-container">
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          onPlay={async () => await model.detectVideoFrame(videoRef.current!, canvasRef.current!)}
+          className="video-feed"
+        />
+        <canvas className="overlay-canvas" width={640} height={640} ref={canvasRef} />
+      </div>
+
+      <div className="button-container">
+        {!isCamOpen ? (
+          <Button onClick={startWebcam} className="control-button">Start Camera</Button>
+        ) : (
+          <Button onClick={stopWebcam} variant="destructive" className="control-button">Stop Camera</Button>
+        )}
+      </div>
+    </div>
+
   );
 };
 
 export default WebcamStream;
+
