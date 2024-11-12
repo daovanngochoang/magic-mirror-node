@@ -60,6 +60,9 @@ const labels: string[] = DATA_CLASS;
 export const renderBoxes = (canvasRef: HTMLCanvasElement, boxes_data: Float32Array, scores_data: number[], classes_data: number[], displayRatios: number[]) => {
   const ctx = canvasRef.getContext("2d")!;
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); // clear the canvas
+  ctx.filter = "blur(8px)";
+  ctx.fillStyle = Colors.hexToRgba("#ffffff", 0.5) as string;
+  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
   const colors = new Colors();
 
@@ -69,6 +72,7 @@ export const renderBoxes = (canvasRef: HTMLCanvasElement, boxes_data: Float32Arr
   )}px Arial`;
   ctx.font = font;
   ctx.textBaseline = "top";
+  ctx.filter = "none"
 
   for (let i = 0; i < scores_data.length; ++i) {
     const klass = labels[classes_data[i]];
@@ -85,6 +89,7 @@ export const renderBoxes = (canvasRef: HTMLCanvasElement, boxes_data: Float32Arr
     const height = y2 - y1;
 
     // Draw bounding box
+    ctx.clearRect(x1, y1, width, height)
     ctx.fillStyle = Colors.hexToRgba(color, 0.2) as string;
     ctx.fillRect(x1, y1, width, height);
 
@@ -95,7 +100,7 @@ export const renderBoxes = (canvasRef: HTMLCanvasElement, boxes_data: Float32Arr
     // Draw label background and text
     ctx.fillStyle = color;
     const textWidth = ctx.measureText(klass + " - " + score + "%").width;
-    const textHeight = parseInt(font, 10); 
+    const textHeight = parseInt(font, 10);
     const yText = y1 - (textHeight + ctx.lineWidth);
     ctx.fillRect(
       x1 - 1,
