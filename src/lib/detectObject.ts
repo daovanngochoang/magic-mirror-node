@@ -1,7 +1,5 @@
-
 // import * as tf from "@tensorflow/tfjs";
 // import { renderBoxes } from "./boxRender";
-// import { config } from "process";
 
 // export interface ModelConfig {
 //   modelPath: string;
@@ -13,19 +11,16 @@
 //   inputWidth: number;
 // }
 
-
 // export class ObjectDetectionModel {
-
 //   private model: tf.GraphModel | null;
 //   public readonly config: Required<ModelConfig>;
 
 //   constructor(config: Required<ModelConfig>) {
-//     this.config = config
-//     this.model = null
+//     this.config = config;
+//     this.model = null;
 //   }
 
 //   private warmupModel(): void {
-//     // warming up model
 //     const dummyInput = tf.ones(this.model!.inputs[0].shape!);
 //     this.model!.execute(dummyInput);
 //   }
@@ -41,15 +36,14 @@
 //   }
 
 //   private prepareInput(dataSource: HTMLVideoElement) {
-//     let ratioX: number = 1
-//     let ratioY: number = 1
+//     let ratioX: number = 1;
+//     let ratioY: number = 1;
 
-//     // prepare input 
 //     const inputData: tf.Tensor4D = tf.tidy(() => {
-//       const image = tf.browser.fromPixels(dataSource)
-//       const [h, w] = image.shape.slice(0, 2)
+//       const image = tf.browser.fromPixels(dataSource);
+//       const [h, w] = image.shape.slice(0, 2);
 
-//       const maxSize = Math.max(w, h); // get max size
+//       const maxSize = Math.max(w, h);
 //       const imgPadded = image.pad([
 //         [0, maxSize - h],
 //         [0, maxSize - w],
@@ -57,58 +51,58 @@
 //       ]);
 
 //       ratioX = maxSize / w;
-//       ratioY = maxSize / h; 
+//       ratioY = maxSize / h;
 
 //       return tf.image.resizeBilinear(
 //         imgPadded as tf.Tensor4D,
 //         [this.config.inputWidth, this.config.inputHeight]
-//       ).div(255.0).expandDims(0)
+//       ).div(255.0).expandDims(0);
 //     });
-//     return [inputData, ratioX, ratioY]
+//     return [inputData, ratioX, ratioY];
 //   }
 
 //   public async detect(dataSource: HTMLVideoElement, canvas: HTMLCanvasElement, callback: () => Promise<void>) {
-
 //     tf.engine().startScope();
-//     const [inputData, ratioX, ratioY] = this.prepareInput(dataSource)
-//     const prediction: tf.Tensor = this.model!.predict(inputData as tf.Tensor) as tf.Tensor
+//     const [inputData, ratioX, ratioY] = this.prepareInput(dataSource);
+//     const prediction: tf.Tensor = this.model!.predict(inputData as tf.Tensor) as tf.Tensor;
 
-//     const result = prediction.squeeze()
-//     const transposed = result.transpose()
+//     const result = prediction.squeeze();
+//     const transposed = result.transpose();
 
 //     const boxes = tf.tidy(() => {
-//       const centerX = transposed.slice([0, 0], [-1, 1])
-//       const centerY = transposed.slice([0, 1], [-1, 1])
-//       const w = transposed.slice([0, 2], [-1, 1])
-//       const h = transposed.slice([0, 3], [-1, 1])
+//       const centerX = transposed.slice([0, 0], [-1, 1]);
+//       const centerY = transposed.slice([0, 1], [-1, 1]);
+//       const w = transposed.slice([0, 2], [-1, 1]);
+//       const h = transposed.slice([0, 3], [-1, 1]);
 
-//       const x1 = tf.sub(centerX, tf.div(w, 2))
-//       const y1 = tf.sub(centerY, tf.div(h, 2))
-//       const x2 = tf.add(x1, w)
-//       const y2 = tf.add(y1, h)
+//       const x1 = tf.sub(centerX, tf.div(w, 2));
+//       const y1 = tf.sub(centerY, tf.div(h, 2));
+//       const x2 = tf.add(x1, w);
+//       const y2 = tf.add(y1, h);
 
-//       return tf.concat(
-//         [
-//           x1, y1, x2, y2
-//         ], 1
-//       )
-//     })
-
+//       return tf.concat([x1, y1, x2, y2], 1);
+//     });
 
 //     const [scores, classes] = tf.tidy(() => {
-//       const rawScores = transposed.slice([0, 4], [-1, 80]).squeeze()
-//       return [rawScores.max(1), rawScores.argMax(1)]
-//     })
+//       const rawScores = transposed.slice([0, 4], [-1, this.config.classes.length]).squeeze();
+//       return [rawScores.max(1), rawScores.argMax(1)];
+//     });
 
-//     const nms = await tf.image.nonMaxSuppressionAsync(boxes as tf.Tensor2D, scores, this.config.maxDetections, this.config.iouThreshHold, this.config.scoreThreshHold); 
+//     const nms = await tf.image.nonMaxSuppressionAsync(
+//       boxes as tf.Tensor2D,
+//       scores,
+//       this.config.maxDetections,
+//       this.config.iouThreshHold,
+//       this.config.scoreThreshHold
+//     );
 
 //     const boxes_data = boxes.gather(nms, 0).dataSync();
 //     const classes_data = classes.gather(nms, 0).dataSync();
 //     const scores_data = scores.gather(nms, 0).dataSync();
 
-//     renderBoxes(canvas, boxes_data as Float32Array, scores_data, classes_data, [ratioX as number, ratioY as number])
+//     renderBoxes(canvas, boxes_data as Float32Array, scores_data, classes_data, [ratioX, ratioY]);
 
-//     tf.dispose([prediction, transposed, boxes, scores, classes, nms]); 
+//     tf.dispose([prediction, transposed, boxes, scores, classes, nms]);
 
 //     callback();
 
@@ -116,24 +110,21 @@
 //   }
 
 //   public async detectVideoFrame(source: HTMLVideoElement, canvas: HTMLCanvasElement) {
-
-//     console.log(source.srcObject)
 //     const detectSingleFrame = async () => {
 //       if (source.videoWidth === 0 && source.srcObject === null) {
-
 //         const ctx = canvas.getContext("2d")!;
-//         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); 
-//         return; // handle if source is closed
+//         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+//         return;
 //       }
 
 //       await this.detect(source, canvas, async () => {
-//         requestAnimationFrame(detectSingleFrame)
-//       })
-//     }
-//     await detectSingleFrame()
+//         requestAnimationFrame(detectSingleFrame);
+//       });
+//     };
+//     await detectSingleFrame();
 //   }
-
 // }
+
 
 
 import * as tf from "@tensorflow/tfjs";

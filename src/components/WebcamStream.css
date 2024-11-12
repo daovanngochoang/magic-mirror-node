@@ -5,7 +5,7 @@
 }
 
 .fullscreen-container {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   width: 100vw;
@@ -26,6 +26,7 @@
   font-weight: bold;
   color: #333;
   margin-bottom: 1rem;
+  z-index: 3;
 }
 
 .header-icon {
@@ -37,16 +38,15 @@
   position: relative;
   width: 100%;
   height: 100%;
-  background-color: #e2e8f0;
+  overflow: hidden;
+  z-index: 1;
 }
 
 .video-feed {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain; /* or 'cover' */
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover; /* Ensures the video fills the container without stretching */
+  transform: scale(1.05); /* Slight scale-up for better coverage */
   z-index: 1;
 }
 
@@ -54,9 +54,10 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
   z-index: 2;
+  pointer-events: none; /* Allow clicks to pass through */
 }
 
 .button-container {
@@ -71,4 +72,7 @@
 .control-button {
   padding: 0.75rem 1.5rem;
   font-size: 1.1rem;
+  background-color: rgba(255, 69, 58, 0.9); /* Slightly transparent red */
+  color: white;
+  border-radius: 8px;
 }
