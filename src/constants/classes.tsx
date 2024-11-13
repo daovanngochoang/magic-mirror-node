@@ -686,3 +686,41 @@ export const DATA_CLASS = [
   "Zebra",
   "Zucchini"
 ];
+
+export const EXCLUDE_CLASSES = [
+  "Man",
+  "Person",
+  "Woman",
+  "Clothing",
+  "Human arm",
+  "Human beard",
+  "Human body",
+  "Human ear",
+  "Human eye",
+  "Human face",
+  "Human foot",
+  "Human hair",
+  "Human hand",
+  "Human head",
+  "Human leg",
+  "Human mouth",
+  "Human nose",
+  "Boy",
+]
+
+export const EXCLUDE_CLASSES_INDEXES = [322, 381, 594, 115, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 63]
+export const INCLUDE_CLASSES = [
+  "backpack", "book", "bowl", "fork", "laptop", "pen", "sandwich",
+  "television", "banana", "bottle", "mobile phone", "knife", "orange",
+  "plant", "scissors",
+]
+export const INCLUDE_CLASSES_INDEXES = [15, 54, 60, 204, 304, 376, 433, 527, 21, 57, 339, 296, 356, 393, 438,]
+
+const keys = new Map()
+for (let i = 0; i < DATA_CLASS.length; i++) {
+  keys.set(DATA_CLASS[i], i)
+}
+
+for (const c of EXCLUDE_CLASSES) {
+  console.log(keys.get(c))
+}

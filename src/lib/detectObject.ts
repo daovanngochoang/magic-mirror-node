@@ -129,6 +129,7 @@
 
 import * as tf from "@tensorflow/tfjs";
 import { renderBoxes } from "./boxRender";
+import { DATA_CLASS, EXCLUDE_CLASSES_INDEXES, INCLUDE_CLASSES, INCLUDE_CLASSES_INDEXES } from "@/constants/classes";
 
 export interface ModelConfig {
   modelPath: string;
@@ -143,16 +144,56 @@ export interface ModelConfig {
 export class ObjectDetectionModel {
   private model: tf.GraphModel | null;
   public readonly config: Required<ModelConfig>;
+  private detectedCount: Map<string, number> = new Map()
+  private maxCount: number = 0;
+  private callback: (obName: string) => Promise<void>;
 
-  constructor(config: Required<ModelConfig>) {
+  constructor(
+    config: Required<ModelConfig>,
+    maxCount: number = 20,
+    mainClasses: string[] = INCLUDE_CLASSES,
+    callback: (obName: string) => Promise<void>
+  ) {
     this.config = config;
     this.model = null;
+    this.maxCount = maxCount;
+    this.callback = callback
+
+    for (const c of mainClasses) {
+      this.detectedCount.set(c.toLowerCase(), 0)
+    }
   }
 
   private warmupModel(): void {
     const dummyInput = tf.ones(this.model!.inputs[0].shape!);
     this.model!.execute(dummyInput);
   }
+
+  private reset(): void {
+    for (const k of this.detectedCount.keys()) {
+      this.detectedCount.set(k, 0)
+    }
+  }
+
+  private rate(): string | null {
+    const keys = Array.from(this.detectedCount.keys())
+    const value = Array.from(this.detectedCount.values())
+    if (Math.max(...value) > this.maxCount) {
+      const maxIdx = tf.tensor(value).argMax()
+      const idx = maxIdx.dataSync().at(0)!
+      return keys[idx]
+    }
+    return null
+  }
+
+  private updateCount(obName: string) {
+    obName = obName.toLowerCase()
+    if (this.detectedCount.has(obName)) {
+      const cls = this.detectedCount.get(obName)!
+      this.detectedCount.set(obName, cls + 1)
+    }
+  }
+
 
   public async loadModel(): Promise<void> {
     try {
@@ -225,11 +266,22 @@ export class ObjectDetectionModel {
       this.config.scoreThreshHold
     );
 
-    const boxes_data = boxes.gather(nms, 0).dataSync();
-    const classes_data = classes.gather(nms, 0).dataSync();
-    const scores_data = scores.gather(nms, 0).dataSync();
+    const classesRaw = classes.gather(nms, 0)
+    const mask = tf.all(tf.notEqual(classesRaw.reshape([-1, 1]), EXCLUDE_CLASSES_INDEXES), 1);
+    const filteredClasses = await tf.booleanMaskAsync(classesRaw, mask);
+    const indices = await tf.whereAsync(mask)
+    const boxesData = (boxes.gather(nms, 0)).gather(indices, 0).dataSync();
+    const classesData = filteredClasses.dataSync();
+    const scoresData = (scores.gather(nms, 0)).gather(indices, 0).dataSync();
 
-    renderBoxes(canvas, boxes_data as Float32Array, scores_data, classes_data, [ratioX, ratioY]);
+    if (scoresData.length > 0) {
+      const highestScore = tf.topk(scoresData, 1)
+      const highestScoreIdx = highestScore.indices
+      const highestClass = classesData[highestScoreIdx.dataSync()[0]]
+      this.updateCount(DATA_CLASS[highestClass])
+    }
+
+    renderBoxes(canvas, boxesData as Float32Array, scoresData, classesData, [ratioX, ratioY]);
 
     tf.dispose([prediction, transposed, boxes, scores, classes, nms]);
 
@@ -240,12 +292,19 @@ export class ObjectDetectionModel {
 
   public async detectVideoFrame(source: HTMLVideoElement, canvas: HTMLCanvasElement) {
     const detectSingleFrame = async () => {
-      if (source.videoWidth === 0 && source.srcObject === null) {
+      if ((source.videoWidth === 0 && source.srcObject === null)) {
         const ctx = canvas.getContext("2d")!;
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         return;
       }
+      if (this.rate()) {
+        const ctx = canvas.getContext("2d")!;
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
+        await this.callback(this.rate()!)
+        this.reset()
+        return;
+      }
       await this.detect(source, canvas, async () => {
         requestAnimationFrame(detectSingleFrame);
       });

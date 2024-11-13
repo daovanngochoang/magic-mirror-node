@@ -57,11 +57,11 @@ import { DATA_CLASS } from "@/constants/classes";
 
 const labels: string[] = DATA_CLASS;
 
-export const renderBoxes = (canvasRef: HTMLCanvasElement, boxes_data: Float32Array, scores_data: number[], classes_data: number[], displayRatios: number[]) => {
+export const renderBoxes = (canvasRef: HTMLCanvasElement, boxesData: Float32Array, scoresData: number[], classesData: number[], displayRatios: number[]) => {
   const ctx = canvasRef.getContext("2d")!;
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); // clear the canvas
   ctx.filter = "blur(8px)";
-  ctx.fillStyle = Colors.hexToRgba("#ffffff", 0.5) as string;
+  ctx.fillStyle = Colors.hexToRgba("#333333", 0.7) as string;
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
   const colors = new Colors();
@@ -74,13 +74,13 @@ export const renderBoxes = (canvasRef: HTMLCanvasElement, boxes_data: Float32Arr
   ctx.textBaseline = "top";
   ctx.filter = "none"
 
-  for (let i = 0; i < scores_data.length; ++i) {
-    const klass = labels[classes_data[i]];
-    const color = colors.get(classes_data[i]);
-    const score = (scores_data[i] * 100).toFixed(1);
+  for (let i = 0; i < scoresData.length; ++i) {
+    const klass = labels[classesData[i]];
+    const color = colors.get(classesData[i]);
+    const score = (scoresData[i] * 100).toFixed(1);
 
     // Adjust for scaling
-    let [x1, y1, x2, y2] = boxes_data.slice(i * 4, (i + 1) * 4);
+    let [x1, y1, x2, y2] = boxesData.slice(i * 4, (i + 1) * 4);
     x1 *= displayRatios[0];
     x2 *= displayRatios[0];
     y1 *= displayRatios[1];

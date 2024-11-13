@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { DATA_CLASS } from '@/constants/classes';
+import { DATA_CLASS, INCLUDE_CLASSES } from '@/constants/classes';
 import { useToast } from '@/hooks/use-toast';
 import { ObjectDetectionModel } from '@/lib/detectObject';
 import { Camera } from 'lucide-react';
@@ -8,39 +8,56 @@ import "./WebcamStream.css";
 
 interface WebcamStreamProps {
   initiallyActive?: boolean;
+  videoPath?: string
 }
 
-const WebcamStream: React.FC<WebcamStreamProps> = ({ initiallyActive = false }) => {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+const WebcamStream: React.FC<WebcamStreamProps> = ({ initiallyActive = false, videoPath }) => {
+  const camRef = useRef<HTMLVideoElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isCamOpen, setCamOpen] = useState(false);
   const [isLoaded, setLoaded] = useState<boolean>(false);
   const { toast } = useToast();
 
-  const [model] = useState<ObjectDetectionModel>(new ObjectDetectionModel({
-    inputWidth: 640,
-    inputHeight: 640,
-    maxDetections: 50,
-    iouThreshHold: 0.6,
-    scoreThreshHold: 0.4,
-    classes: DATA_CLASS,
-    modelPath: "model_yolov8s-oiv7_js/model.json"
-  }));
+
+
+  const [model] = useState<ObjectDetectionModel>(new ObjectDetectionModel(
+    {
+      inputWidth: 640,
+      inputHeight: 640,
+      maxDetections: 50,
+      iouThreshHold: 0.4,
+      scoreThreshHold: 0.4,
+      classes: DATA_CLASS,
+      modelPath: "model_yolov8s-oiv7_js/model.json",
+    },
+    20,
+    INCLUDE_CLASSES,
+    async (obName: string) => {
+      stopWebcam();
+      videoRef.current!.src = `${window.location.href}${videoPath}/${obName.toLowerCase()}.mp4`; // set video source
+      videoRef.current!.addEventListener("ended", () => {
+        videoRef.current!.src = ""; // restore video source
+        videoRef.current!.style.display = "none";
+      }) // add ended video listener
+      videoRef.current!.style.display = "block";
+    }));
 
   const constraints = {
     audio: false,
     video: {
       width: 1280, // Higher resolution for better capture
       height: 720,
-      facingMode: "user"
+      facingMode: "environment"
     }
   };
 
   const startWebcam = async (): Promise<void> => {
     try {
-      const videoStream = await navigator.mediaDevices.getUserMedia(constraints);
-      if (videoRef.current) {
-        videoRef.current.srcObject = videoStream;
+      const camVideoStream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (camRef.current) {
+        camRef.current.srcObject = camVideoStream;
+        camRef.current.style.display = "block";
       }
       setCamOpen(true);
     } catch {
@@ -53,11 +70,12 @@ const WebcamStream: React.FC<WebcamStreamProps> = ({ initiallyActive = false }) 
   };
 
   const stopWebcam = (): void => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      (videoRef.current.srcObject as MediaStream).getTracks().forEach((track) => {
+    if (camRef.current && camRef.current.srcObject) {
+      (camRef.current.srcObject as MediaStream).getTracks().forEach((track) => {
         track.stop();
       });
-      videoRef.current.srcObject = null;
+      camRef.current.srcObject = null;
+      camRef.current!.style.display = "none";
       setCamOpen(false);
     }
   };
@@ -102,12 +120,19 @@ const WebcamStream: React.FC<WebcamStreamProps> = ({ initiallyActive = false }) 
 
       <div className="video-container">
         <video
+          ref={camRef}
+          autoPlay
+          muted
+          onPlay={async () => await model.detectVideoFrame(camRef.current!, canvasRef.current!)}
+          className="video-feed"
+        />
+        <video
           ref={videoRef}
           autoPlay
           muted
-          onPlay={async () => await model.detectVideoFrame(videoRef.current!, canvasRef.current!)}
           className="video-feed"
         />
+
         <canvas className="overlay-canvas" width={640} height={640} ref={canvasRef} />
       </div>
 
