@@ -5,6 +5,7 @@ import { ObjectDetectionModel } from '@/lib/detectObject';
 import { Camera } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import "./WebcamStream.css";
+import { MODEL_FILE_PATH } from '@/constants/constants';
 
 interface WebcamStreamProps {
   initiallyActive?: boolean;
@@ -26,10 +27,10 @@ const WebcamStream: React.FC<WebcamStreamProps> = ({ initiallyActive = false, vi
       inputWidth: 640,
       inputHeight: 640,
       maxDetections: 50,
-      iouThreshHold: 0.4,
-      scoreThreshHold: 0.4,
+      iouThreshHold: 0.2,
+      scoreThreshHold: 0.2,
       classes: DATA_CLASS,
-      modelPath: "model_yolov8s-oiv7_js/model.json",
+      modelPath: MODEL_FILE_PATH,
     },
     20,
     INCLUDE_CLASSES,

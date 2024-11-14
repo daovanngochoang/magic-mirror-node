@@ -238,6 +238,7 @@ export class ObjectDetectionModel {
 
     const result = prediction.squeeze();
     const transposed = result.transpose();
+    console.log(transposed)
 
     const boxes = tf.tidy(() => {
       const centerX = transposed.slice([0, 0], [-1, 1]);
@@ -267,9 +268,10 @@ export class ObjectDetectionModel {
     );
 
     const classesRaw = classes.gather(nms, 0)
-    const mask = tf.all(tf.notEqual(classesRaw.reshape([-1, 1]), EXCLUDE_CLASSES_INDEXES), 1);
+    const mask = tf.tensor1d(EXCLUDE_CLASSES_INDEXES, 'int32').equal(classesRaw.reshape([-1, 1])).any(1).logicalNot()
     const filteredClasses = await tf.booleanMaskAsync(classesRaw, mask);
     const indices = await tf.whereAsync(mask)
+
     const boxesData = (boxes.gather(nms, 0)).gather(indices, 0).dataSync();
     const classesData = filteredClasses.dataSync();
     const scoresData = (scores.gather(nms, 0)).gather(indices, 0).dataSync();

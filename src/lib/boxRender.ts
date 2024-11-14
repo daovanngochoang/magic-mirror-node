@@ -60,10 +60,10 @@ const labels: string[] = DATA_CLASS;
 export const renderBoxes = (canvasRef: HTMLCanvasElement, boxesData: Float32Array, scoresData: number[], classesData: number[], displayRatios: number[]) => {
   const ctx = canvasRef.getContext("2d")!;
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); // clear the canvas
-  ctx.filter = "blur(8px)";
-  ctx.fillStyle = Colors.hexToRgba("#333333", 0.7) as string;
-  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
+  // ctx.filter = "blur(8px)";
+  // ctx.fillStyle = Colors.hexToRgba("#333333", 0.7) as string;
+  // ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  //
   const colors = new Colors();
 
   const font = `${Math.max(
@@ -89,7 +89,7 @@ export const renderBoxes = (canvasRef: HTMLCanvasElement, boxesData: Float32Arra
     const height = y2 - y1;
 
     // Draw bounding box
-    ctx.clearRect(x1, y1, width, height)
+    // ctx.clearRect(x1, y1, width, height)
     ctx.fillStyle = Colors.hexToRgba(color, 0.2) as string;
     ctx.fillRect(x1, y1, width, height);
 
