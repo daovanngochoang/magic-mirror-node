@@ -48,6 +48,8 @@
   object-fit: cover; /* Ensures the video fills the container without stretching */
   transform: scale(1.05); /* Slight scale-up for better coverage */
   z-index: 1;
+  -webkit-transform: scaleX(-1);
+  transform: scaleX(-1);
 }
 
 .overlay-canvas {
@@ -58,7 +60,7 @@
   height: 100vh;
   z-index: 2;
   pointer-events: none; /* Allow clicks to pass through */
-}
+ }
 
 .button-container {
   position: absolute;
