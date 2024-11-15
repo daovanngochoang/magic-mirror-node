@@ -8,7 +8,7 @@ export const renderBoxes = (canvasRef: HTMLCanvasElement, boxesData: Float32Arra
   // ctx.filter = "blur(8px)";
   // ctx.fillStyle = Colors.hexToRgba("#333333", 0.7) as string;
   // ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  //
+  
   const colors = new Colors();
 
   const font = `${Math.max(

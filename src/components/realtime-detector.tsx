@@ -36,32 +36,44 @@ const WebcamStream: React.FC<WebcamStreamProps> = ({ initiallyActive = false, vi
     20,
     INCLUDE_CLASSES,
     async (obName: string) => {
-      stopWebcam();
-      videoRef.current!.src = `${window.location.href}${videoPath}/${obName.toLowerCase()}.mp4`; // set video source
-      videoRef.current!.addEventListener("ended", () => {
-        videoRef.current!.src = ""; // restore video source
-        videoRef.current!.style.display = "none";
-      }) // add ended video listener
-      videoRef.current!.style.display = "block";
+      // Stop webcam, play detected object's video, and restart webcam
+      stopWebcam(); // Stop the webcam
+      if (videoRef.current) {
+        videoRef.current.src = `${window.location.href}${videoPath}/${obName.toLowerCase()}.mp4`; // Set video source
+        videoRef.current.style.display = "block";
+        videoRef.current.play();
+
+        if (videoRef.current) {
+          videoRef.current.onended = () => {
+            if (videoRef.current) {
+              videoRef.current.style.display = "none"; // Hide video when it ends
+              videoRef.current.src = ""; // Clear video source
+              startWebcam(); // Restart the webcam
+            }
+          };
+        }
+        
+      }
     }));
 
   const constraints = {
     audio: false,
     video: {
-      width: 1280, // Higher resolution for better capture
-      height: 720,
+      width: { ideal: 1920 }, // Use "ideal" to let the browser choose the highest supported resolution
+      height: { ideal: 1080 },
       facingMode: "environment"
     }
   };
 
   const startWebcam = async (): Promise<void> => {
+    setCamOpen(true);
     try {
       const camVideoStream = await navigator.mediaDevices.getUserMedia(constraints);
       if (camRef.current) {
         camRef.current.srcObject = camVideoStream;
         camRef.current.style.display = "block";
       }
-      setCamOpen(true);
+      
     } catch {
       toast({
         title: "Cannot open webcam",
@@ -125,7 +137,7 @@ const WebcamStream: React.FC<WebcamStreamProps> = ({ initiallyActive = false, vi
           ref={camRef}
           autoPlay
           muted
-          onPlay={async () => await model.detectVideoFrame(camRef.current!, canvasRef.current!)}
+          onPlay={async () => await model.detectVideoFrame(camRef.current!, canvasRef.current!, 0.15,0.25  )}
           className="video-feed"
         />
         <video
