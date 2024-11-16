@@ -197,7 +197,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
         inputHeight: 640,
         maxDetections: 50,
         iouThreshHold: 0.4,
-        scoreThreshHold: 0.05,
+        scoreThreshHold: 0.4,
         classes: DATA_CLASS,
         modelPath: MODEL_FILE_PATH,
       },
@@ -209,6 +209,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
         if (videoRef.current) {
           videoRef.current.src = `${window.location.href}${videoPath}/${obName.toLowerCase()}.mp4`; // Set video source
           videoRef.current.style.display = "block";
+          camRef.current!.style.display = "none"
           videoRef.current.play();
 
           if (videoRef.current) {
@@ -216,6 +217,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
               if (videoRef.current) {
                 videoRef.current.style.display = "none"; // Hide video when it ends
                 videoRef.current.src = ""; // Clear video source
+                camRef.current!.style.display = "block"
                 startWebcam(); // Restart the webcam
               }
             };

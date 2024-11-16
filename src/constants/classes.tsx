@@ -728,7 +728,7 @@ export const EXCLUDE_CLASSES_INDEXES = [0]
 
 export const INCLUDE_CLASSES = [
   "backpack", "book", "bowl", "fork", "laptop", "pen", "sandwich",
-  "television", "banana", "bottle", "mobile phone", "knife", "orange",
+  "television", "banana", "bottle", "cell phone", "knife", "orange",
   "plant", "scissors",
 ];
 export const INCLUDE_CLASSES_INDEXES = [
