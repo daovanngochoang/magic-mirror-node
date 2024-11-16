@@ -20,13 +20,39 @@
 
 .header {
   display: flex;
+  justify-content: space-between; /* Spread elements evenly across the header */
   align-items: center;
-  gap: 0.5rem;
-  font-size: 1.5rem;
+  width: 100%;
+  padding: 0 1rem;
+  background-color: #e2e8f0;
+  font-size: 1rem;
   font-weight: bold;
   color: #333;
-  margin-bottom: 1rem;
   z-index: 3;
+}
+
+.header-left,
+.header-center,
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.header-left {
+  flex: 1; /* Allows dynamic spacing */
+}
+
+.header-center {
+  flex: 1; /* Center content takes equal space */
+  flex-direction: column; /* Stack items vertically */
+  text-align: center;
+}
+
+.header-right {
+  flex: 1; /* Dynamic spacing for right content */
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 
 .header-icon {
@@ -45,7 +71,7 @@
 .video-feed {
   width: 100vw;
   height: 100vh;
-  object-fit: cover; /* Ensures the video fills the container without stretching */
+  object-fit: cover;
   transform: scale(1.05); /* Slight scale-up for better coverage */
   z-index: 1;
   -webkit-transform: scaleX(-1);
@@ -60,15 +86,6 @@
   height: 100vh;
   z-index: 2;
   pointer-events: none; /* Allow clicks to pass through */
- }
-
-.button-container {
-  position: absolute;
-  bottom: 20px;
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  z-index: 3;
 }
 
 .control-button {
@@ -77,4 +94,5 @@
   background-color: rgba(255, 69, 58, 0.9); /* Slightly transparent red */
   color: white;
   border-radius: 8px;
+  cursor: pointer;
 }
