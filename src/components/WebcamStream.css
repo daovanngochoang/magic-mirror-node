@@ -96,3 +96,41 @@
   border-radius: 8px;
   cursor: pointer;
 }
+
+
+.learned-objects-container {
+  position: absolute;
+  top: 10px; /* Adjust as needed */
+  right: 10px; /* Adjust as needed */
+  width: 300px; /* Set desired width */
+  height: 200px; /* Set desired height */
+  overflow-y: auto;
+}
+
+/* learned object section*/
+.learned-objects-section {
+  margin-top: 20px;
+  padding: 10px;
+  border-top: 2px solid #ccc;
+  background-color: #f9f9f9;
+  text-align: left;
+}
+
+.learned-objects-section h3 {
+  margin: 0 0 10px;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.learned-objects-list {
+  list-style: none;
+  padding: 0;
+}
+
+.learned-object-item {
+  padding: 5px 10px;
+  background-color: #e8f5e9;
+  margin-bottom: 5px;
+  border-radius: 5px;
+  color: #388e3c;
+}

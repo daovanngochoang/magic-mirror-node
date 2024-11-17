@@ -42,8 +42,8 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
         // Stop webcam, play detected object's video, and restart webcam
         stopWebcam(); // Stop the webcam
         if (videoRef.current) {
-          videoRef. current.src = `${window.location.href}${videoPath}/${obName.toLowerCase()}.mp4`; // Set video source
-          console.log(videoRef. current.src);
+          videoRef.current.src = `${window.location.href}${videoPath}/${obName.toLowerCase()}.mp4`; // Set video source
+          console.log(videoRef.current.src);
           videoRef.current.style.display = "block";
           camRef.current!.style.display = "none"
           videoRef.current.play();
@@ -60,7 +60,16 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
           }
 
         }
-      })
+      },
+
+      (detectedClasses: string[]) => {
+        setLearnedObjects((prev) => {
+          const newClasses = detectedClasses.filter((cls) => !prev.includes(cls));
+          return [...prev, ...newClasses];
+        });
+      }
+
+    )
   );
 
   const constraints = {
@@ -97,15 +106,15 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
     }
   };
 
-const handleLearnObject = (object: string) => {
-  setLearnedObjects((prev) => {
-    if (!prev.includes(object) && object !== 'person') {
-      toast({ title: 'Learned New Object', description: `Learned: ${object}`, variant: 'info' });
-      return [...prev, object];
-    }
-    return prev;
-  });
-};
+  const handleLearnObject = (object: string) => {
+    setLearnedObjects((prev) => {
+      if (!prev.includes(object) && object !== 'person') {
+        toast({ title: 'Learned New Object', description: `Learned: ${object}`, variant: 'info' });
+        return [...prev, object];
+      }
+      return prev;
+    });
+  };
 
 
   const switchToLearningMode = () => {
@@ -159,21 +168,21 @@ const handleLearnObject = (object: string) => {
 
   const detectFrame = async () => {
     if (!camRef.current || !canvasRef.current || !isDetecting) return;
-  
+
     const detectedObjects: string[] = [];
     await model.detectVideoFrame(camRef.current, canvasRef.current);
-  
+
     if (mode === 'Learning') {
       detectedObjects.forEach(handleLearnObject);
     } else if (mode === 'Game') {
       verifyObject(detectedObjects);
     }
-  
+
     if (isDetecting) {
       requestAnimationFrame(detectFrame);
     }
   };
-  
+
 
 
   useEffect(() => {
@@ -246,6 +255,22 @@ const handleLearnObject = (object: string) => {
           className="video-feed"
         />
         <canvas className="overlay-canvas" width={640} height={640} ref={canvasRef} />
+      </div>
+
+      {/* Learned Objects Section */}
+      <div className="learned-objects-section">
+        <h3>Learned Objects</h3>
+        <ul className="learned-objects-list">
+          {learnedObjects.length > 0 ? (
+            learnedObjects.map((object, index) => (
+              <li key={index} className="learned-object-item">
+                {object}
+              </li>
+            ))
+          ) : (
+            <p>No objects learned yet.</p>
+          )}
+        </ul>
       </div>
     </div>
 

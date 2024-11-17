@@ -253,20 +253,23 @@ export class ObjectDetectionModel {
   private detectedCount: Map<string, number> = new Map()
   private maxCount: number = 0;
   private callback: (obName: string) => Promise<void>;
+  private onDetect: (classes: string[]) => void; // Added onDetect callback
 
   constructor(
     config: Required<ModelConfig>,
     maxCount: number = 20,
     mainClasses: string[] = INCLUDE_CLASSES,
-    callback: (obName: string) => Promise<void>
+    callback: (obName: string) => Promise<void>,
+    onDetect: (classes: string[]) => void
   ) {
     this.config = config;
     this.model = null;
     this.maxCount = maxCount;
-    this.callback = callback
+    this.callback = callback;
+    this.onDetect = onDetect; // Store onDetect callback
 
     for (const c of mainClasses) {
-      this.detectedCount.set(c.toLowerCase(), 0)
+      this.detectedCount.set(c.toLowerCase(), 0);
     }
   }
 
@@ -418,6 +421,8 @@ export class ObjectDetectionModel {
     
         if (!EXCLUDE_CLASSES_INDEXES.includes(detectedClassIndex)) {
           console.log(`Detected Object: ${detectedClass}`);
+          this.onDetect([detectedClass]); // Notify detected classes
+
         }
       }
       const highestScore = tf.topk(scoresData, 1);
