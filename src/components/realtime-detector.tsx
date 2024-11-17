@@ -216,34 +216,34 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
 
   return (
     <div className="fullscreen-container">
-      <div className="header">
-        <div className="header-left">
-          <Camera className="header-icon" />
-          <span className="header-title">Webcam</span>
-        </div>
-
-        <div className="control-section header-center">
-          <h2>Magic Mirror</h2>
-          <p>Mode: {mode}</p>
-          <p>Score: {score}</p>
-        </div>
-
-        <div className="header-right">
-          <Button onClick={switchToLearningMode} className="control-button">Learning Mode</Button>
-          <Button onClick={switchToGameMode} className="control-button">Game Mode</Button>
-          <Button onClick={toggleHints} className="control-button">
-            {showHints ? 'Hide Hints' : 'Show Hints'}
-          </Button>
-          <Button onClick={stopWebcam} variant="destructive" className="control-button">Quit</Button>
-        </div>
+    {/* Header Section */}
+    <div className="header">
+      <div className="header-left">
+        <span className="header-title">Magic Mirror</span>
       </div>
-
+      <div className="header-center">
+        <h2>Magic Mirror</h2>
+        <p>Mode: {mode}</p>
+        <p>Score: {score}</p>
+      </div>
+      <div className="header-right">
+        <Button onClick={switchToLearningMode} className="control-button">Learning Mode</Button>
+        <Button onClick={switchToGameMode} className="control-button">Game Mode</Button>
+        <Button onClick={toggleHints} className="control-button">
+          {showHints ? 'Hide Hints' : 'Show Hints'}
+        </Button>
+        <Button onClick={stopWebcam} variant="destructive" className="control-button">Quit</Button>
+      </div>
+    </div>
+  
+    {/* Main Content: Video and Sidebar */}
+    <div className="content-container">
+      {/* Video Section */}
       <div className="video-container">
         <video
           ref={camRef}
           autoPlay
           muted
-          // onPlay={async () => await model.detectVideoFrame(camRef.current!, canvasRef.current!)}
           onPlay={async () => await detectFrame()}
           className="video-feed"
         />
@@ -256,23 +256,25 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
         />
         <canvas className="overlay-canvas" width={640} height={640} ref={canvasRef} />
       </div>
-
-      {/* Learned Objects Section */}
+  
+      {/* Sidebar Section */}
       <div className="learned-objects-section">
         <h3>Learned Objects</h3>
-        <ul className="learned-objects-list">
-          {learnedObjects.length > 0 ? (
-            learnedObjects.map((object, index) => (
+        {learnedObjects.length > 0 ? (
+          <ul className="learned-objects-list">
+            {learnedObjects.map((object, index) => (
               <li key={index} className="learned-object-item">
                 {object}
               </li>
-            ))
-          ) : (
-            <p>No objects learned yet.</p>
-          )}
-        </ul>
+            ))}
+          </ul>
+        ) : (
+          <p>No objects learned yet.</p>
+        )}
       </div>
     </div>
+  </div>
+  
 
   );
 };
