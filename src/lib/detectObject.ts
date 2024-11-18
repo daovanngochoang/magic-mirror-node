@@ -253,14 +253,14 @@ export class ObjectDetectionModel {
   private detectedCount: Map<string, number> = new Map()
   private maxCount: number = 0;
   private callback: (obName: string) => Promise<void>;
-  private onDetect: (classes: string[]) => void; // Added onDetect callback
+  private onDetect: (className: string) => void; // Added onDetect callback
 
   constructor(
     config: Required<ModelConfig>,
     maxCount: number = 20,
     mainClasses: string[] = INCLUDE_CLASSES,
     callback: (obName: string) => Promise<void>,
-    onDetect: (classes: string[]) => void
+    onDetect: (className: string) => void
   ) {
     this.config = config;
     this.model = null;
@@ -415,25 +415,13 @@ export class ObjectDetectionModel {
     const scoresData = scores.gather(nms, 0).gather(indices, 0).dataSync();
 
     if (scoresData.length > 0) {
-      const detectedClassList = []
-      for (let i = 0; i < scoresData.length; i++) {
-        const detectedClassIndex = classesData[i]; // Get the class index
-        const detectedClass = this.config.classes![detectedClassIndex];
-
-        if (!EXCLUDE_CLASSES_INDEXES.includes(detectedClassIndex)) {
-          detectedClassList.push(detectedClass)
-        }
-      }
-
-      this.onDetect(detectedClassList); 
-
       // Notify detected classes
       const highestScore = tf.topk(scoresData, 1);
       const highestScoreIdx = highestScore.indices;
       const highestClass = classesData[highestScoreIdx.dataSync()[0]];
       if (!EXCLUDE_CLASSES_INDEXES.includes(highestClass)) {
         this.updateCount(DATA_CLASS[highestClass]);
-        console.log(this.detectedCount);
+        this.onDetect(DATA_CLASS[highestClass]); 
       }
     }
 
@@ -540,6 +528,7 @@ export class ObjectDetectionModel {
     source: HTMLVideoElement,
     canvas: HTMLCanvasElement
   ) {
+    
     const detectSingleFrame = async () => {
       // Ensure video dimensions are valid before proceeding
       if (source.videoWidth === 0 || source.srcObject === null) {
@@ -549,7 +538,6 @@ export class ObjectDetectionModel {
       }
 
       // If a rate condition is met, execute callback and reset detection
-      console.log(this.rate())
       if (this.rate()) {
         const ctx = canvas.getContext("2d")!;
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
