@@ -75,8 +75,8 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
   const constraints = {
     audio: false,
     video: {
-      width: { ideal: 1920 },
-      height: { ideal: 1080 },
+      width: { ideal: 2560 },
+      height: { ideal: 1440 },
       facingMode: 'environment',
     },
   };
