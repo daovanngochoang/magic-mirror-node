@@ -41,7 +41,6 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
           }
         };
       }
-
     }
   }
 
