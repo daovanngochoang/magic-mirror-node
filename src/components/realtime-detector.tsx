@@ -6,7 +6,6 @@ import { ObjectDetectionModel } from '@/lib/detectObject';
 import React, { useEffect, useRef, useState } from 'react';
 import "./WebcamStream.css";
 
-
 const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> = ({
   videoPath,
 }) => {
