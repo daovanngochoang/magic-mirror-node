@@ -13,7 +13,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
   const camRef = useRef<HTMLVideoElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  // const [isCamOpen, setCamOpen] = useState(false);
+  const [isCamOpen, setCamOpen] = useState(false);
   const [isLoaded, setLoaded] = useState(false);
   const [isDetecting, setDetecting] = useState(false);
   const [learnedObjects, setLearnedObjects] = useState<string[]>([]);
@@ -81,6 +81,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
   };
 
   const startWebcam = async (): Promise<void> => {
+    setMode('Welcome');
     try {
       const camVideoStream = await navigator.mediaDevices.getUserMedia(constraints);
       if (camRef.current) {
@@ -101,7 +102,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
     if (camRef.current && camRef.current.srcObject) {
       (camRef.current.srcObject as MediaStream).getTracks().forEach((track) => track.stop());
       camRef.current.srcObject = null;
-      // setCamOpen(false);
+      setCamOpen(false);
     }
   };
 
@@ -226,13 +227,23 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
           <p>Score: {score}</p>
         </div>
         <div className="header-right">
+          <Button onClick={startWebcam} className="control-button" disabled={isCamOpen}>
+            Open Camera
+          </Button>
           <Button onClick={switchToLearningMode} className="control-button">Learning Mode</Button>
           <Button onClick={switchToGameMode} className="control-button">Game Mode</Button>
           <Button onClick={toggleHints} className="control-button">
             {showHints ? 'Hide Hints' : 'Show Hints'}
           </Button>
-          <Button onClick={stopWebcam} variant="destructive" className="control-button">Quit</Button>
-        </div>
+          <Button onClick={() => {
+            stopWebcam();
+            setDetecting(false); // Explicitly stop detecting when Quit is clicked
+            setLearnedObjects([]);
+          }}
+            variant="destructive"
+            className="control-button">
+            Quit
+          </Button>        </div>
       </div>
 
       {/* Main Content: Video and Sidebar */}
