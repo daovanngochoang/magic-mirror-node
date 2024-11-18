@@ -415,16 +415,19 @@ export class ObjectDetectionModel {
     const scoresData = scores.gather(nms, 0).gather(indices, 0).dataSync();
 
     if (scoresData.length > 0) {
+      const detectedClassList = []
       for (let i = 0; i < scoresData.length; i++) {
         const detectedClassIndex = classesData[i]; // Get the class index
         const detectedClass = this.config.classes![detectedClassIndex];
-    
-        if (!EXCLUDE_CLASSES_INDEXES.includes(detectedClassIndex)) {
-          console.log(`Detected Object: ${detectedClass}`);
-          this.onDetect([detectedClass]); // Notify detected classes
 
+        if (!EXCLUDE_CLASSES_INDEXES.includes(detectedClassIndex)) {
+          detectedClassList.push(detectedClass)
         }
       }
+
+      this.onDetect(detectedClassList); 
+
+      // Notify detected classes
       const highestScore = tf.topk(scoresData, 1);
       const highestScoreIdx = highestScore.indices;
       const highestClass = classesData[highestScoreIdx.dataSync()[0]];
@@ -449,39 +452,39 @@ export class ObjectDetectionModel {
     callback: () => Promise<void>
   ) {
     tf.engine().startScope();
-  
+
     const [inputData, ratioX, ratioY] = this.prepareInput(dataSource);
-  
+
     const prediction: tf.Tensor = this.model!.predict(inputData as tf.Tensor) as tf.Tensor;
-  
+
     const result = prediction.squeeze();
     const transposed = result.transpose();
-  
+
     // Ensure tensors are not prematurely disposed
     const boxes = tf.tidy(() => {
       const centerX = transposed.slice([0, 0], [-1, 1]);
       const centerY = transposed.slice([0, 1], [-1, 1]);
       const w = transposed.slice([0, 2], [-1, 1]);
       const h = transposed.slice([0, 3], [-1, 1]);
-  
+
       const x1 = tf.sub(centerX, tf.div(w, 2));
       const y1 = tf.sub(centerY, tf.div(h, 2));
       const x2 = tf.add(x1, w);
       const y2 = tf.add(y1, h);
-  
+
       return tf.concat([x1, y1, x2, y2], 1); // This tensor will remain
     });
-  
+
     const [scores, classes] = tf.tidy(() => {
       const rawScores = transposed.slice([0, 4], [-1, this.config.classes.length]).squeeze();
       return [rawScores.max(1), rawScores.argMax(1)];
     });
-  
+
     // Clone tensors to retain them beyond tf.tidy
     const boxesClone = boxes.clone();
     const scoresClone = scores.clone();
     const classesClone = classes.clone();
-  
+
     const nms = await tf.image.nonMaxSuppressionAsync(
       boxesClone as tf.Tensor2D,
       scoresClone,
@@ -489,35 +492,35 @@ export class ObjectDetectionModel {
       this.config.iouThreshHold,
       this.config.scoreThreshHold
     );
-  
+
     const classesRaw = classesClone.gather(nms, 0);
-  
+
     const mask = tf
       .tensor1d(EXCLUDE_CLASSES_INDEXES, 'int32')
       .equal(classesRaw.reshape([-1, 1]))
       .any(1)
       .logicalNot();
-  
+
     const filteredClasses = await tf.booleanMaskAsync(classesRaw, mask);
     const indices = await tf.whereAsync(mask);
-  
+
     const boxesData = boxesClone.gather(nms, 0).gather(indices, 0).dataSync();
     const classesData = filteredClasses.dataSync();
     const scoresData = scoresClone.gather(nms, 0).gather(indices, 0).dataSync();
-  
+
     if (scoresData.length > 0) {
       for (let i = 0; i < scoresData.length; i++) {
         const detectedClassIndex = classesData[i];
         const detectedClass = this.config.classes![detectedClassIndex];
-  
+
         if (!EXCLUDE_CLASSES_INDEXES.includes(detectedClassIndex)) {
           console.log(`Detected Object: ${detectedClass}`);
         }
       }
     }
-  
+
     renderBoxes(canvas, boxesData as Float32Array, scoresData, classesData, [ratioX, ratioY]);
-  
+
     // Dispose tensors properly after use
     tf.dispose([
       prediction,
@@ -527,12 +530,12 @@ export class ObjectDetectionModel {
       classesClone,
       nms,
     ]);
-  
+
     callback();
-  
+
     tf.engine().endScope();
   }
-  
+
   public async detectVideoFrame(
     source: HTMLVideoElement,
     canvas: HTMLCanvasElement
