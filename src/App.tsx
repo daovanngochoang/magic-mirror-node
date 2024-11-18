@@ -1,5 +1,4 @@
 // App.tsx
-import { Bot } from 'lucide-react';
 import './App.css';
 import WebcamStream from './components/realtime-detector';
 

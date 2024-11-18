@@ -233,9 +233,9 @@
 // }
 
 
+import { DATA_CLASS, EXCLUDE_CLASSES_INDEXES, INCLUDE_CLASSES } from "@/constants/classes";
 import * as tf from "@tensorflow/tfjs";
 import { renderBoxes } from "./boxRender";
-import { DATA_CLASS, EXCLUDE_CLASSES_INDEXES, INCLUDE_CLASSES, INCLUDE_CLASSES_INDEXES } from "@/constants/classes";
 
 export interface ModelConfig {
   modelPath: string;
@@ -437,7 +437,7 @@ export class ObjectDetectionModel {
       }
     }
 
-    renderBoxes(canvas, boxesData as Float32Array, scoresData, classesData, [ratioX, ratioY]);
+    renderBoxes(canvas, boxesData as Float32Array, scoresData, Array.from(classesData), [ratioX as number, ratioY as number]);
 
     tf.dispose([prediction, transposed, boxes, scores, classes, nms]);
 
@@ -519,7 +519,7 @@ export class ObjectDetectionModel {
       }
     }
 
-    renderBoxes(canvas, boxesData as Float32Array, scoresData, classesData, [ratioX, ratioY]);
+    renderBoxes(canvas, boxesData as Float32Array, scoresData, Array.from(classesData), [ratioX as number, ratioY as number]);
 
     // Dispose tensors properly after use
     tf.dispose([
