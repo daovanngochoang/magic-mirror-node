@@ -1,11 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DATA_CLASS, INCLUDE_CLASSES } from '@/constants/classes';
+import { MODEL_FILE_PATH } from '@/constants/constants';
 import { useToast } from '@/hooks/use-toast';
 import { ObjectDetectionModel } from '@/lib/detectObject';
-import { Camera } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 import "./WebcamStream.css";
-import { MODEL_FILE_PATH } from '@/constants/constants';
 
 const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> = ({
   initiallyActive = false,
@@ -14,7 +13,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
   const camRef = useRef<HTMLVideoElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [isCamOpen, setCamOpen] = useState(false);
+  // const [isCamOpen, setCamOpen] = useState(false);
   const [isLoaded, setLoaded] = useState(false);
   const [isDetecting, setDetecting] = useState(false);
   const [learnedObjects, setLearnedObjects] = useState<string[]>([]);
@@ -88,7 +87,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
         camRef.current.srcObject = camVideoStream;
         camRef.current.style.display = 'block';
       }
-      setCamOpen(true);
+      // setCamOpen(true);
     } catch {
       toast({
         title: 'Cannot open webcam',
@@ -102,14 +101,14 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
     if (camRef.current && camRef.current.srcObject) {
       (camRef.current.srcObject as MediaStream).getTracks().forEach((track) => track.stop());
       camRef.current.srcObject = null;
-      setCamOpen(false);
+      // setCamOpen(false);
     }
   };
 
   const handleLearnObject = (object: string) => {
     setLearnedObjects((prev) => {
       if (!prev.includes(object) && object !== 'person') {
-        toast({ title: 'Learned New Object', description: `Learned: ${object}`, variant: 'info' });
+        toast({ title: 'Learned New Object', description: `Learned: ${object}` });
         return [...prev, object];
       }
       return prev;
@@ -120,7 +119,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
   const switchToLearningMode = () => {
     setMode('Learning');
     setDetecting(true); // Enable detection
-    toast({ title: 'Learning Mode Activated', description: 'Show objects to learn.', variant: 'info' });
+    toast({ title: 'Learning Mode Activated', description: 'Show objects to learn.' });
   };
 
   const switchToGameMode = () => {
@@ -128,13 +127,13 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
       toast({
         title: 'No Objects Learned',
         description: 'Please learn objects first in Learning Mode.',
-        variant: 'warning',
+        variant: 'destructive',
       });
     } else {
       setMode('Game');
       setDetecting(false); // Disable detection during game mode
       chooseNextObject();
-      toast({ title: 'Game Mode Activated', description: 'Identify learned objects.', variant: 'info' });
+      toast({ title: 'Game Mode Activated', description: 'Identify learned objects.' });
     }
   };
   const toggleHints = () => setShowHints((prev) => !prev);
@@ -146,20 +145,20 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
     if (availableObjects.length > 0) {
       const nextObject = availableObjects[Math.floor(Math.random() * availableObjects.length)];
       setCurrentObject(nextObject);
-      toast({ title: 'Identify This Object', description: `Find: ${nextObject}`, variant: 'info' });
+      toast({ title: 'Identify This Object', description: `Find: ${nextObject}` });
     }
   };
 
-  const skipObject = () => {
-    setPreviousObject(currentObject);
-    setCurrentObject(null);
-    chooseNextObject();
-  };
+  // const skipObject = () => {
+  //   setPreviousObject(currentObject);
+  //   setCurrentObject(null);
+  //   chooseNextObject();
+  // };
 
   const verifyObject = (detectedObjects: string[]) => {
     if (currentObject && detectedObjects.includes(currentObject)) {
       setScore((prev) => prev + 1);
-      toast({ title: 'Correct!', description: `You identified: ${currentObject}`, variant: 'success' });
+      toast({ title: 'Correct!', description: `You identified: ${currentObject}` });
       setPreviousObject(currentObject);
       setCurrentObject(null);
       chooseNextObject();
@@ -216,65 +215,65 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
 
   return (
     <div className="fullscreen-container">
-    {/* Header Section */}
-    <div className="header">
-      <div className="header-left">
-        <span className="header-title">Magic Mirror</span>
+      {/* Header Section */}
+      <div className="header">
+        <div className="header-left">
+          <span className="header-title">Magic Mirror</span>
+        </div>
+        <div className="header-center">
+          <h2>Magic Mirror</h2>
+          <p>Mode: {mode}</p>
+          <p>Score: {score}</p>
+        </div>
+        <div className="header-right">
+          <Button onClick={switchToLearningMode} className="control-button">Learning Mode</Button>
+          <Button onClick={switchToGameMode} className="control-button">Game Mode</Button>
+          <Button onClick={toggleHints} className="control-button">
+            {showHints ? 'Hide Hints' : 'Show Hints'}
+          </Button>
+          <Button onClick={stopWebcam} variant="destructive" className="control-button">Quit</Button>
+        </div>
       </div>
-      <div className="header-center">
-        <h2>Magic Mirror</h2>
-        <p>Mode: {mode}</p>
-        <p>Score: {score}</p>
-      </div>
-      <div className="header-right">
-        <Button onClick={switchToLearningMode} className="control-button">Learning Mode</Button>
-        <Button onClick={switchToGameMode} className="control-button">Game Mode</Button>
-        <Button onClick={toggleHints} className="control-button">
-          {showHints ? 'Hide Hints' : 'Show Hints'}
-        </Button>
-        <Button onClick={stopWebcam} variant="destructive" className="control-button">Quit</Button>
+
+      {/* Main Content: Video and Sidebar */}
+      <div className="content-container">
+        {/* Video Section */}
+        <div className="video-container">
+          <video
+            ref={camRef}
+            autoPlay
+            muted
+            onPlay={async () => await detectFrame()}
+            className="video-feed"
+          />
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            style={{ display: 'none' }}
+            className="video-feed"
+          />
+          <canvas className="overlay-canvas" width={640} height={640} ref={canvasRef} />
+        </div>
+
+        {/* Sidebar Section */}
+        <div className="learned-objects-section">
+          <h3>Learned Objects</h3>
+          {learnedObjects.length > 0 ? (
+            <ul className="learned-objects-list">
+              {learnedObjects.map((object, index) => (
+                <li key={index} className="learned-object-item">
+                  {object}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>No objects learned yet.</p>
+          )}
+        </div>
       </div>
     </div>
-  
-    {/* Main Content: Video and Sidebar */}
-    <div className="content-container">
-      {/* Video Section */}
-      <div className="video-container">
-        <video
-          ref={camRef}
-          autoPlay
-          muted
-          onPlay={async () => await detectFrame()}
-          className="video-feed"
-        />
-        <video
-          ref={videoRef}
-          autoPlay
-          muted
-          style={{ display: 'none' }}
-          className="video-feed"
-        />
-        <canvas className="overlay-canvas" width={640} height={640} ref={canvasRef} />
-      </div>
-  
-      {/* Sidebar Section */}
-      <div className="learned-objects-section">
-        <h3>Learned Objects</h3>
-        {learnedObjects.length > 0 ? (
-          <ul className="learned-objects-list">
-            {learnedObjects.map((object, index) => (
-              <li key={index} className="learned-object-item">
-                {object}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>No objects learned yet.</p>
-        )}
-      </div>
-    </div>
-  </div>
-  
+
 
   );
 };
