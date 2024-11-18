@@ -7,7 +7,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import "./WebcamStream.css";
 
 const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> = ({
-  initiallyActive = false,
   videoPath,
 }) => {
   const camRef = useRef<HTMLVideoElement | null>(null);
@@ -22,7 +21,29 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
   const [score, setScore] = useState(0);
   const [mode, setMode] = useState<'Welcome' | 'Learning' | 'Game'>('Welcome');
   const [showHints, setShowHints] = useState(false);
+  const [detectedClass, setDetectedClass] = useState<string | null>(null)
   const { toast } = useToast();
+  const showVideo = async (obName: string) => {
+    // Stop webcam, play detected object's video, and restart webcam
+    stopWebcam(); // Stop the webcam
+    if (videoRef.current) {
+      videoRef.current.src = `${window.location.href}${videoPath}/${obName.toLowerCase()}.mp4`; // Set video source
+      videoRef.current.style.display = "block";
+      camRef.current!.style.display = "none"
+      videoRef.current.play();
+
+      if (videoRef.current) {
+        videoRef.current.onended = async () => {
+          if (videoRef.current) {
+            videoRef.current.style.display = "none"; // Hide video when it ends
+            videoRef.current.src = ""; // Clear video source
+            camRef.current!.style.display = "block"
+            await startWebcam();
+          }
+        };
+      }
+    }
+  }
 
   const [model] = useState<ObjectDetectionModel>(
     new ObjectDetectionModel(
@@ -37,39 +58,14 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
       },
       20,
       INCLUDE_CLASSES,
-      async (obName: string) => {
-        // Stop webcam, play detected object's video, and restart webcam
-        stopWebcam(); // Stop the webcam
-        if (videoRef.current) {
-          videoRef.current.src = `${window.location.href}${videoPath}/${obName.toLowerCase()}.mp4`; // Set video source
-          console.log(videoRef.current.src);
-          videoRef.current.style.display = "block";
-          camRef.current!.style.display = "none"
-          videoRef.current.play();
-
-          if (videoRef.current) {
-            videoRef.current.onended = () => {
-              if (videoRef.current) {
-                videoRef.current.style.display = "none"; // Hide video when it ends
-                videoRef.current.src = ""; // Clear video source
-                camRef.current!.style.display = "block"
-                startWebcam(); // Restart the webcam
-              }
-            };
-          }
-
-        }
-      },
-
-      (detectedClasses: string[]) => {
-        setLearnedObjects((prev) => {
-          const newClasses = detectedClasses.filter((cls) => !prev.includes(cls));
-          return [...prev, ...newClasses];
-        });
+      showVideo,
+      (detectedClass: string) => {
+        setDetectedClass(detectedClass)
       }
 
     )
   );
+
 
   const constraints = {
     audio: false,
@@ -84,11 +80,10 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
     setMode('Welcome');
     try {
       const camVideoStream = await navigator.mediaDevices.getUserMedia(constraints);
-      if (camRef.current) {
+      if (camRef.current && !camRef.current.srcObject) {
         camRef.current.srcObject = camVideoStream;
         camRef.current.style.display = 'block';
       }
-      // setCamOpen(true);
     } catch {
       toast({
         title: 'Cannot open webcam',
@@ -109,11 +104,11 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
   const handleLearnObject = (object: string) => {
     setLearnedObjects((prev) => {
       if (!prev.includes(object) && object !== 'person') {
-        toast({ title: 'Learned New Object', description: `Learned: ${object}` });
         return [...prev, object];
       }
       return prev;
     });
+    toast({ title: 'Learned New Object', description: `Learned: ${object}` });
   };
 
 
@@ -121,6 +116,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
     setMode('Learning');
     setDetecting(true); // Enable detection
     toast({ title: 'Learning Mode Activated', description: 'Show objects to learn.' });
+    setDetectedClass(null)
   };
 
   const switchToGameMode = () => {
@@ -132,9 +128,9 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
       });
     } else {
       setMode('Game');
-      setDetecting(false); // Disable detection during game mode
+      setDetecting(true); // Disable detection during game mode
       chooseNextObject();
-      toast({ title: 'Game Mode Activated', description: 'Identify learned objects.' });
+      setDetectedClass(null)
     }
   };
   const toggleHints = () => setShowHints((prev) => !prev);
@@ -147,17 +143,15 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
       const nextObject = availableObjects[Math.floor(Math.random() * availableObjects.length)];
       setCurrentObject(nextObject);
       toast({ title: 'Identify This Object', description: `Find: ${nextObject}` });
+
+      if (INCLUDE_CLASSES.includes(nextObject)) {
+        showVideo(nextObject)
+      }
     }
   };
 
-  // const skipObject = () => {
-  //   setPreviousObject(currentObject);
-  //   setCurrentObject(null);
-  //   chooseNextObject();
-  // };
-
-  const verifyObject = (detectedObjects: string[]) => {
-    if (currentObject && detectedObjects.includes(currentObject)) {
+  const verifyObject = (detectedObject: string) => {
+    if (currentObject && detectedObject === currentObject) {
       setScore((prev) => prev + 1);
       toast({ title: 'Correct!', description: `You identified: ${currentObject}` });
       setPreviousObject(currentObject);
@@ -166,24 +160,6 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
     }
   };
 
-  const detectFrame = async () => {
-    if (!camRef.current || !canvasRef.current || !isDetecting) return;
-
-    const detectedObjects: string[] = [];
-    await model.detectVideoFrame(camRef.current, canvasRef.current);
-
-    if (mode === 'Learning') {
-      detectedObjects.forEach(handleLearnObject);
-    } else if (mode === 'Game') {
-      verifyObject(detectedObjects);
-    }
-
-    if (isDetecting) {
-      requestAnimationFrame(detectFrame);
-    }
-  };
-
-
 
   useEffect(() => {
     startWebcam();
@@ -191,7 +167,6 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
       .loadModel()
       .then(() => {
         setLoaded(true);
-        if (initiallyActive) startWebcam();
       })
       .catch((e) =>
         toast({
@@ -202,13 +177,27 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
       );
 
     return () => stopWebcam();
-  }, [initiallyActive]);
+  }, []);
 
   useEffect(() => {
     if (isDetecting) {
-      detectFrame();
+      model.detectVideoFrame(camRef.current!, canvasRef.current!);
     }
-  }, [isDetecting]);
+  }, [isDetecting, camRef.current?.srcObject, camRef.current?.videoWidth]);
+
+
+  useEffect(() => {
+    if (detectedClass != null) {
+      if (mode === "Learning") {
+        handleLearnObject(detectedClass)
+      }
+      else if (mode === "Game") {
+        verifyObject(detectedClass)
+      }
+    }
+  }, [detectedClass])
+
+
 
   if (!isLoaded) {
     return <div>Loading Model...</div>;
@@ -254,7 +243,6 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
             ref={camRef}
             autoPlay
             muted
-            onPlay={async () => await detectFrame()}
             className="video-feed"
           />
           <video
