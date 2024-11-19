@@ -201,10 +201,10 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
   useEffect(() => {
     console.log(mode, ratedClass)
     if (mode === "Learning" && ratedClass !== null) {
-      showVideo(ratedClass)
       setLearnedObjects((prev) => {
         return [...prev, ratedClass];
       });
+      showVideo(ratedClass)
     }
     else if (mode === "Game" && ratedClass !== null) {
       verifyObject(ratedClass)
