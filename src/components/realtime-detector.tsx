@@ -59,7 +59,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
         modelPath: MODEL_FILE_PATH,
       },
       10,
-      INCLUDE_CLASSES,
+      // INCLUDE_CLASSES,
       async (obName: string) => {
         setRatedClass(obName)
       },

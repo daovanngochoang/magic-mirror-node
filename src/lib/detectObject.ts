@@ -24,7 +24,7 @@ export class ObjectDetectionModel {
   constructor(
     config: Required<ModelConfig>,
     maxCount: number = 20,
-    mainClasses: string[] = INCLUDE_CLASSES,
+    // mainClasses: string[] = INCLUDE_CLASSES,
     callback: (obName: string) => Promise<void>,
     // onDetect: (classes: string[]) => void
   ) {
@@ -34,9 +34,9 @@ export class ObjectDetectionModel {
     this.onRate = callback;
     // this.onDetect = onDetect; // Store onDetect callback
 
-    for (const c of mainClasses) {
-      this.detectedCount.set(c.toLowerCase(), 0);
-    }
+    // for (const c of mainClasses) {
+    //   this.detectedCount.set(c.toLowerCase(), 0);
+    // }
   }
 
   private warmupModel(): void {
@@ -63,10 +63,11 @@ export class ObjectDetectionModel {
 
   private updateCount(obName: string) {
     obName = obName.toLowerCase()
-    console.log(obName)
     if (this.detectedCount.has(obName)) {
       const cls = this.detectedCount.get(obName)!
       this.detectedCount.set(obName, cls + 1)
+    } else {
+      this.detectedCount.set(obName, 1)
     }
   }
 
@@ -189,10 +190,7 @@ export class ObjectDetectionModel {
       const highestScore = tf.topk(scoresData, 1);
       const highestScoreIdx = highestScore.indices;
       const highestClass = classesData[highestScoreIdx.dataSync()[0]];
-      if (!EXCLUDE_CLASSES_INDEXES.includes(highestClass)) {
-        this.updateCount(DATA_CLASS[highestClass]);
-        console.log(this.detectedCount)
-      }
+      this.updateCount(DATA_CLASS[highestClass]);
     }
 
     renderBoxes(canvas, boxesData as Float32Array, scoresData, Array.from(classesData), [ratioX as number, ratioY as number]);
