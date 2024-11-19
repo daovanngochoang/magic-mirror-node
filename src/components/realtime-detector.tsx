@@ -60,9 +60,11 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
       INCLUDE_CLASSES,
       showVideo,
       (detectedClasses: string[]) => {
-        setDetectedClasses(detectedClasses)
+        setLearnedObjects((prev) => {
+          const newClasses = detectedClasses.filter((cls) => !prev.includes(cls));
+          return [...prev, ...newClasses];
+        });
       }
-
     )
   );
 
@@ -108,7 +110,6 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
       }
       return prev;
     });
-    toast({ title: 'Learned New Object', description: `Learned: ${object}` });
   };
 
 
