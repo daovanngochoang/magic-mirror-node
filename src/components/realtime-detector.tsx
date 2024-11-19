@@ -25,23 +25,24 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
   const [ratedClass, setRatedClass] = useState<string | null>(null)
   const { toast } = useToast();
   const showVideo = async (obName: string) => {
-    console.log("Run video for", obName)
-    stopWebcam(); // Stop the webcam
-    if (videoRef.current) {
-      videoRef.current.src = `${window.location.href}${videoPath}/${obName.toLowerCase()}.mp4`; // Set video source
-      videoRef.current.style.display = "block";
-      camRef.current!.style.display = "none"
-      videoRef.current.play();
-
+    if (INCLUDE_CLASSES.includes(obName)) {
+      stopWebcam(); // Stop the webcam
       if (videoRef.current) {
-        videoRef.current.onended = async () => {
-          if (videoRef.current) {
-            videoRef.current.style.display = "none";
-            videoRef.current.src = "";
-            camRef.current!.style.display = "block"
-            await startWebcam();
-          }
-        };
+        videoRef.current.src = `${window.location.href}${videoPath}/${obName.toLowerCase()}.mp4`; // Set video source
+        videoRef.current.style.display = "block";
+        camRef.current!.style.display = "none"
+        videoRef.current.play();
+
+        if (videoRef.current) {
+          videoRef.current.onended = async () => {
+            if (videoRef.current) {
+              videoRef.current.style.display = "none";
+              videoRef.current.src = "";
+              camRef.current!.style.display = "block"
+              await startWebcam();
+            }
+          };
+        }
       }
     }
   }
