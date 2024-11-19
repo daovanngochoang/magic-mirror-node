@@ -21,7 +21,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
   const [score, setScore] = useState(0);
   const [mode, setMode] = useState<'Welcome' | 'Learning' | 'Game'>('Welcome');
   const [showHints, setShowHints] = useState(false);
-  const [detectedClass, setDetectedClass] = useState<string | null>(null)
+  const [detectedClasses, setDetectedClasses] = useState<string[]>([])
   const { toast } = useToast();
   const showVideo = async (obName: string) => {
     // Stop webcam, play detected object's video, and restart webcam
@@ -59,8 +59,8 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
       20,
       INCLUDE_CLASSES,
       showVideo,
-      (detectedClass: string) => {
-        setDetectedClass(detectedClass)
+      (detectedClasses: string[]) => {
+        setDetectedClasses(detectedClasses)
       }
 
     )
@@ -116,7 +116,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
     setMode('Learning');
     setDetecting(true); // Enable detection
     toast({ title: 'Learning Mode Activated', description: 'Show objects to learn.' });
-    setDetectedClass(null)
+    setDetectedClasses([])
   };
 
   const switchToGameMode = () => {
@@ -130,7 +130,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
       setMode('Game');
       setDetecting(true); // Disable detection during game mode
       chooseNextObject();
-      setDetectedClass(null)
+      setDetectedClasses([])
     }
   };
   const toggleHints = () => setShowHints((prev) => !prev);
@@ -150,8 +150,8 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
     }
   };
 
-  const verifyObject = (detectedObject: string) => {
-    if (currentObject && detectedObject === currentObject) {
+  const verifyObject = (detectedObjects: string[]) => {
+    if (currentObject && detectedObjects.includes(currentObject)) {
       setScore((prev) => prev + 1);
       toast({ title: 'Correct!', description: `You identified: ${currentObject}` });
       setPreviousObject(currentObject);
@@ -192,15 +192,17 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
 
 
   useEffect(() => {
-    if (detectedClass != null) {
+    if (detectedClasses.length) {
       if (mode === "Learning") {
-        handleLearnObject(detectedClass)
+        detectedClasses.forEach((c) => {
+          handleLearnObject(c)
+        })
       }
       else if (mode === "Game") {
-        verifyObject(detectedClass)
+        verifyObject(detectedClasses)
       }
     }
-  }, [detectedClass])
+  }, [detectedClasses])
 
 
 
