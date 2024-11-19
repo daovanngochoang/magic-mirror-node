@@ -22,9 +22,10 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
   const [mode, setMode] = useState<'Welcome' | 'Learning' | 'Game'>('Welcome');
   const [showHints, setShowHints] = useState(false);
   const [detectedClasses, setDetectedClasses] = useState<string[]>([])
+  const [ratedClass, setRatedClass] = useState<string | null>(null)
   const { toast } = useToast();
   const showVideo = async (obName: string) => {
-    // Stop webcam, play detected object's video, and restart webcam
+    console.log("Run video for", obName)
     stopWebcam(); // Stop the webcam
     if (videoRef.current) {
       videoRef.current.src = `${window.location.href}${videoPath}/${obName.toLowerCase()}.mp4`; // Set video source
@@ -35,8 +36,8 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
       if (videoRef.current) {
         videoRef.current.onended = async () => {
           if (videoRef.current) {
-            videoRef.current.style.display = "none"; // Hide video when it ends
-            videoRef.current.src = ""; // Clear video source
+            videoRef.current.style.display = "none";
+            videoRef.current.src = "";
             camRef.current!.style.display = "block"
             await startWebcam();
           }
@@ -58,12 +59,11 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
       },
       20,
       INCLUDE_CLASSES,
-      showVideo,
+      async (obName: string) => {
+        setRatedClass(obName)
+      },
       (detectedClasses: string[]) => {
-        setLearnedObjects((prev) => {
-          const newClasses = detectedClasses.filter((cls) => !prev.includes(cls));
-          return [...prev, ...newClasses];
-        });
+        setDetectedClasses(detectedClasses)
       }
     )
   );
@@ -79,7 +79,6 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
   };
 
   const startWebcam = async (): Promise<void> => {
-    setMode('Welcome');
     try {
       const camVideoStream = await navigator.mediaDevices.getUserMedia(constraints);
       if (camRef.current && !camRef.current.srcObject) {
@@ -102,16 +101,6 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
       setCamOpen(false);
     }
   };
-
-  const handleLearnObject = (object: string) => {
-    setLearnedObjects((prev) => {
-      if (!prev.includes(object) && object !== 'person') {
-        return [...prev, object];
-      }
-      return prev;
-    });
-  };
-
 
   const switchToLearningMode = () => {
     setMode('Learning');
@@ -182,6 +171,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
 
 
   const runDetect = () => {
+    console.log("DETECTING", isDetecting)
     if (isDetecting) {
       model.detectVideoFrame(camRef.current!, canvasRef.current!);
     }
@@ -193,17 +183,32 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
 
 
   useEffect(() => {
+    console.log("DETECTED CLASSES", detectedClasses, ratedClass)
     if (detectedClasses.length) {
       if (mode === "Learning") {
-        detectedClasses.forEach((c) => {
-          handleLearnObject(c)
-        })
+        setLearnedObjects((prev) => {
+          const newClasses = detectedClasses.filter((cls) => !prev.includes(cls));
+          return [...prev, ...newClasses];
+        });
       }
       else if (mode === "Game") {
         verifyObject(detectedClasses)
       }
     }
-  }, [detectedClasses])
+  }, [detectedClasses, detectedClasses.length, mode])
+
+
+
+  useEffect(() => {
+    console.log("ON RATE", ratedClass)
+    if (mode === "Learning" && ratedClass !== null) {
+      showVideo(ratedClass)
+    } else {
+      runDetect()
+    }
+    
+    setRatedClass(null)
+  }, [ratedClass, mode])
 
 
 
@@ -224,7 +229,10 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
           <p>Score: {score}</p>
         </div>
         <div className="header-right">
-          <Button onClick={startWebcam} className="control-button" disabled={isCamOpen}>
+          <Button onClick={() => {
+            setMode("Welcome")
+            startWebcam()
+          }} className="control-button" disabled={isCamOpen}>
             Open Camera
           </Button>
           <Button onClick={switchToLearningMode} className="control-button">Learning Mode</Button>

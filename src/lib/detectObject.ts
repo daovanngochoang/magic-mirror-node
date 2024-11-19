@@ -18,7 +18,7 @@ export class ObjectDetectionModel {
   public readonly config: Required<ModelConfig>;
   private detectedCount: Map<string, number> = new Map()
   private maxCount: number = 0;
-  private callback: (obName: string) => Promise<void>;
+  private onRate: (obName: string) => Promise<void>;
   private onDetect: (classes: string[]) => void; // Added onDetect callback
 
   constructor(
@@ -31,7 +31,7 @@ export class ObjectDetectionModel {
     this.config = config;
     this.model = null;
     this.maxCount = maxCount;
-    this.callback = callback;
+    this.onRate = callback;
     this.onDetect = onDetect; // Store onDetect callback
 
     for (const c of mainClasses) {
@@ -209,6 +209,7 @@ export class ObjectDetectionModel {
   ) {
 
     const detectSingleFrame = async () => {
+      console.log(source.videoWidth === 0, source.srcObject === null)
       // Ensure video dimensions are valid before proceeding
       if (source.videoWidth === 0 || source.srcObject === null) {
         const ctx = canvas.getContext("2d")!;
@@ -221,7 +222,7 @@ export class ObjectDetectionModel {
         const ctx = canvas.getContext("2d")!;
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-        await this.callback(this.rate()!); // Handle detected object callback
+        await this.onRate(this.rate()!); // Handle detected object callback
         this.reset(); // Reset detection counts
         return;
       }
