@@ -176,11 +176,16 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
     return () => stopWebcam();
   }, []);
 
-  useEffect(() => {
+
+  const runDetect = () => {
     if (isDetecting) {
       model.detectVideoFrame(camRef.current!, canvasRef.current!);
     }
-  }, [isDetecting, camRef.current?.srcObject, camRef.current?.videoWidth]);
+  }
+
+  useEffect(() => {
+    runDetect()
+  }, [isDetecting]);
 
 
   useEffect(() => {
@@ -229,6 +234,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
           <video
             ref={camRef}
             autoPlay
+            onPlay={runDetect}
             muted
             className="video-feed"
           />
