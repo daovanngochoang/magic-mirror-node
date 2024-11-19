@@ -21,7 +21,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
   const [score, setScore] = useState(0);
   const [mode, setMode] = useState<'Welcome' | 'Learning' | 'Game'>('Welcome');
   const [showHints, setShowHints] = useState(false);
-  const [detectedClasses, setDetectedClasses] = useState<string[]>([])
+  // const [detectedClasses, setDetectedClasses] = useState<string[]>([])
   const [ratedClass, setRatedClass] = useState<string | null>(null)
   const { toast } = useToast();
   const showVideo = async (obName: string) => {
@@ -57,14 +57,14 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
         classes: DATA_CLASS,
         modelPath: MODEL_FILE_PATH,
       },
-      20,
+      10,
       INCLUDE_CLASSES,
       async (obName: string) => {
         setRatedClass(obName)
       },
-      (detectedClasses: string[]) => {
-        setDetectedClasses(detectedClasses)
-      }
+      // (detectedClasses: string[]) => {
+      //   setDetectedClasses(detectedClasses)
+      // }
     )
   );
 
@@ -106,7 +106,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
     setMode('Learning');
     setDetecting(true); // Enable detection
     toast({ title: 'Learning Mode Activated', description: 'Show objects to learn.' });
-    setDetectedClasses([])
+    // setDetectedClasses([])
   };
 
   const switchToGameMode = () => {
@@ -120,7 +120,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
       setMode('Game');
       setDetecting(true); // Disable detection during game mode
       chooseNextObject();
-      setDetectedClasses([])
+      // setDetectedClasses([])
     }
   };
   const toggleHints = () => setShowHints((prev) => !prev);
@@ -140,8 +140,8 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
     }
   };
 
-  const verifyObject = (detectedObjects: string[]) => {
-    if (currentObject && detectedObjects.includes(currentObject)) {
+  const verifyObject = (detectedObject: string) => {
+    if (currentObject && detectedObject === currentObject) {
       setScore((prev) => prev + 1);
       toast({ title: 'Correct!', description: `You identified: ${currentObject}` });
       setPreviousObject(currentObject);
@@ -182,31 +182,37 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
   }, [isDetecting]);
 
 
-  useEffect(() => {
-    console.log("DETECTED CLASSES", detectedClasses, ratedClass)
-    if (detectedClasses.length) {
-      if (mode === "Learning") {
-        setLearnedObjects((prev) => {
-          const newClasses = detectedClasses.filter((cls) => !prev.includes(cls));
-          return [...prev, ...newClasses];
-        });
-      }
-      else if (mode === "Game") {
-        verifyObject(detectedClasses)
-      }
-    }
-  }, [detectedClasses, detectedClasses.length, mode])
+  // useEffect(() => {
+  //   if (detectedClasses.length) {
+  //     if (mode === "Learning") {
+  //       setLearnedObjects((prev) => {
+  //         const newClasses = detectedClasses.filter((cls) => !prev.includes(cls));
+  //         return [...prev, ...newClasses];
+  //       });
+  //     }
+  //     else if (mode === "Game") {
+  //       verifyObject(detectedClasses)
+  //     }
+  //   }
+  // }, [detectedClasses, detectedClasses.length, mode])
 
 
 
   useEffect(() => {
-    console.log("ON RATE", ratedClass)
+    console.log(mode, ratedClass)
     if (mode === "Learning" && ratedClass !== null) {
       showVideo(ratedClass)
-    } else {
+      setLearnedObjects((prev) => {
+        return [...prev, ratedClass];
+      });
+    }
+    else if (mode === "Game" && ratedClass !== null) {
+      verifyObject(ratedClass)
+    }
+    else {
       runDetect()
     }
-    
+
     setRatedClass(null)
   }, [ratedClass, mode])
 
