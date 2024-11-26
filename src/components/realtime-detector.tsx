@@ -24,6 +24,10 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
   // const [detectedClasses, setDetectedClasses] = useState<string[]>([])
   const [ratedClass, setRatedClass] = useState<string | null>(null)
   const { toast } = useToast();
+  //timer section
+  const [timer, setTimer] = useState(20); // Countdown timer state
+  const timerRef = useRef<NodeJS.Timeout | null>(null); // Timer reference to clear interval
+
   const showVideo = async (obName: string) => {
     if (INCLUDE_CLASSES.includes(obName)) {
       stopWebcam(); // Stop the webcam
@@ -50,15 +54,15 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
   const [model] = useState<ObjectDetectionModel>(
     new ObjectDetectionModel(
       {
-        inputWidth: 640,
-        inputHeight: 640,
+        inputWidth: 224,
+        inputHeight: 224,
         maxDetections: 50,
-        iouThreshHold: 0.4,
-        scoreThreshHold: 0.6,
+        iouThreshHold: 0.3,
+        scoreThreshHold: 0.7,
         classes: DATA_CLASS,
         modelPath: MODEL_FILE_PATH,
       },
-      10,
+      20,
       // INCLUDE_CLASSES,
       async (obName: string) => {
         setRatedClass(obName)
@@ -133,24 +137,49 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
     if (availableObjects.length > 0) {
       const nextObject = availableObjects[Math.floor(Math.random() * availableObjects.length)];
       setCurrentObject(nextObject);
-      toast({ title: 'Identify This Object', description: `Find: ${nextObject}` });
+      toast({ title: `Find: ${nextObject} `, duration: Infinity });
 
       if (INCLUDE_CLASSES.includes(nextObject)) {
         showVideo(nextObject)
       }
+      resetTimer(); // Reset the timer for the new object
     }
   };
-
+  const resetTimer = () => {
+    if (timerRef.current) clearInterval(timerRef.current); // Clear any existing timer
+    setTimer(20); // Reset the timer to 20 seconds
+    timerRef.current = setInterval(() => {
+      setTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current!); // Clear timer when it reaches 0
+          chooseNextObject(); // Move to the next object
+          return 0;
+        }
+        return prev - 1; // Decrement the timer
+      });
+    }, 1000); // Decrease timer every second
+  };
   const verifyObject = (detectedObject: string) => {
     if (currentObject && detectedObject === currentObject) {
       setScore((prev) => prev + 1);
-      toast({ title: 'Correct!', description: `You identified: ${currentObject}` });
+      toast({
+        title: 'Correct!',
+        description: `You identified: ${currentObject}`,
+        className: 'toast-correct',
+      });
       setPreviousObject(currentObject);
       setCurrentObject(null);
-      chooseNextObject();
+      clearInterval(timerRef.current!); // Stop the timer
+      setTimeout(() => {
+        chooseNextObject();
+      }, 2000);
     }
   };
-
+  useEffect(() => {
+    if (mode !== 'Game') {
+      if (timerRef.current) clearInterval(timerRef.current); // Stop timer if not in GameMode
+    }
+  }, [mode]);
 
   useEffect(() => {
     startWebcam();
@@ -198,13 +227,26 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
   // }, [detectedClasses, detectedClasses.length, mode])
 
 
+  const skipObject = () => {
+    toast({ title: 'Skipped!', description: `You skipped: ${currentObject}` });
+    chooseNextObject();
+  };
 
   useEffect(() => {
     console.log(mode, ratedClass)
     if (mode === "Learning" && ratedClass !== null) {
       setLearnedObjects((prev) => {
-        return [...prev, ratedClass];
+        // Check if the object already exists in the list
+        if (!prev.includes(ratedClass)) {
+          return [...prev, ratedClass];
+        }
+        return prev; // Return the same list if the object is already present
       });
+      if (INCLUDE_CLASSES.includes(ratedClass)) {
+        showVideo(ratedClass); // Show video if it exists
+      } else {
+        console.log(`Object ${ratedClass} does not have a video.`);
+      }
       showVideo(ratedClass)
     }
     else if (mode === "Game" && ratedClass !== null) {
@@ -234,6 +276,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
           <h2>Magic Mirror</h2>
           <p>Mode: {mode}</p>
           <p>Score: {score}</p>
+          {mode === 'Game' && <p>Time Left: {timer}s</p>}
         </div>
         <div className="header-right">
           <Button onClick={() => {
@@ -244,6 +287,9 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
           </Button>
           <Button onClick={switchToLearningMode} className="control-button">Learning Mode</Button>
           <Button onClick={switchToGameMode} className="control-button">Game Mode</Button>
+          <Button onClick={skipObject} className="control-button" disabled={mode !== 'Game'}>
+            Skip
+          </Button>
           <Button onClick={toggleHints} className="control-button">
             {showHints ? 'Hide Hints' : 'Show Hints'}
           </Button>
@@ -267,12 +313,16 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
             autoPlay
             onPlay={runDetect}
             muted
+            playsInline 
+            disablePictureInPicture
             className="video-feed"
           />
           <video
             ref={videoRef}
             autoPlay
             muted
+            playsInline 
+            disablePictureInPicture
             style={{ display: 'none' }}
             className="video-feed"
           />
@@ -284,11 +334,17 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
           <h3>Learned Objects</h3>
           {learnedObjects.length > 0 ? (
             <ul className="learned-objects-list">
-              {learnedObjects.map((object, index) => (
-                <li key={index} className="learned-object-item">
-                  {object}
-                </li>
-              ))}
+              {learnedObjects.map((object, index) => {
+                const isNew = index === learnedObjects.length - 1;
+                return (
+                  <li
+                    key={index}
+                    className={`learned-object-item ${isNew ? 'new-object' : ''}`}
+                  >
+                    {object}
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <p>No objects learned yet.</p>

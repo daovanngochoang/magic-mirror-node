@@ -1,5 +1,5 @@
 
-import { DATA_CLASS, EXCLUDE_CLASSES_INDEXES, INCLUDE_CLASSES } from "@/constants/classes";
+import { DATA_CLASS, EXCLUDE_CLASSES_INDEXES} from "@/constants/classes";
 import * as tf from "@tensorflow/tfjs";
 import { renderBoxes } from "./boxRender";
 
@@ -128,79 +128,139 @@ export class ObjectDetectionModel {
     return [inputData, ratioX, ratioY];
   }
 
+  // public async detect(
+  //   dataSource: HTMLVideoElement,
+  //   canvas: HTMLCanvasElement,
+  //   callback: () => Promise<void>,
+  // ) {
+  //   tf.engine().startScope();
+  //   const [inputData, ratioX, ratioY] = this.prepareInput(dataSource);
+  //   const prediction: tf.Tensor = this.model!.predict(inputData as tf.Tensor) as tf.Tensor;
+
+  //   const result = prediction.squeeze();
+  //   const transposed = result.transpose();
+
+  //   const boxes = tf.tidy(() => {
+  //     const centerX = transposed.slice([0, 0], [-1, 1]);
+  //     const centerY = transposed.slice([0, 1], [-1, 1]);
+  //     const w = transposed.slice([0, 2], [-1, 1]);
+  //     const h = transposed.slice([0, 3], [-1, 1]);
+
+  //     const x1 = tf.sub(centerX, tf.div(w, 2));
+  //     const y1 = tf.sub(centerY, tf.div(h, 2));
+  //     const x2 = tf.add(x1, w);
+  //     const y2 = tf.add(y1, h);
+
+  //     return tf.concat([x1, y1, x2, y2], 1);
+  //   });
+
+  //   const [scores, classes] = tf.tidy(() => {
+  //     const rawScores = transposed.slice([0, 4], [-1, this.config.classes.length]).squeeze();
+  //     return [rawScores.max(1), rawScores.argMax(1)];
+  //   });
+
+  //   const nms = await tf.image.nonMaxSuppressionAsync(
+  //     boxes as tf.Tensor2D,
+  //     scores,
+  //     this.config.maxDetections,
+  //     this.config.iouThreshHold,
+  //     this.config.scoreThreshHold,
+  //   );
+
+  //   const classesRaw = classes.gather(nms, 0);
+  //   const mask = tf
+  //     .tensor1d(EXCLUDE_CLASSES_INDEXES, 'int32')
+  //     .equal(classesRaw.reshape([-1, 1]))
+  //     .any(1)
+  //     .logicalNot();
+
+  //   const filteredClasses = await tf.booleanMaskAsync(classesRaw, mask);
+  //   const indices = await tf.whereAsync(mask);
+
+  //   const boxesData = boxes.gather(nms, 0).gather(indices, 0).dataSync();
+  //   const classesData = filteredClasses.dataSync();
+  //   const scoresData = scores.gather(nms, 0).gather(indices, 0).dataSync();
+
+  //   if (scoresData.length > 0) {
+  //     // const detectedClassList: string[] = []
+  //     // classesData.forEach((c): void => { detectedClassList.push(DATA_CLASS[c]) })
+  //     // this.onDetect(detectedClassList);
+
+  //     // Notify detected classes
+  //     const highestScore = tf.topk(scoresData, 1);
+  //     const highestScoreIdx = highestScore.indices;
+  //     const highestClass = classesData[highestScoreIdx.dataSync()[0]];
+  //     this.updateCount(DATA_CLASS[highestClass]);
+  //   }
+
+  //   renderBoxes(canvas, boxesData as Float32Array, scoresData, Array.from(classesData), [ratioX as number, ratioY as number]);
+
+  //   tf.dispose([prediction, transposed, boxes, scores, classes, nms]);
+
+  //   callback();
+
+  //   tf.engine().endScope();
+  // }
+
   public async detect(
-    dataSource: HTMLVideoElement,
-    canvas: HTMLCanvasElement,
-    callback: () => Promise<void>,
-  ) {
-    tf.engine().startScope();
-    const [inputData, ratioX, ratioY] = this.prepareInput(dataSource);
-    const prediction: tf.Tensor = this.model!.predict(inputData as tf.Tensor) as tf.Tensor;
+  dataSource: HTMLVideoElement,
+  canvas: HTMLCanvasElement,
+  callback: () => Promise<void>
+) {
+  tf.engine().startScope();
 
-    const result = prediction.squeeze();
-    const transposed = result.transpose();
+  // Prepare the input
+  const inputData = tf.tidy(() => {
+    const image = tf.browser.fromPixels(dataSource); // Capture video frame
+    const centerHeight = image.shape[0] / 2;
+    const centerWidth = image.shape[1] / 2;
 
-    const boxes = tf.tidy(() => {
-      const centerX = transposed.slice([0, 0], [-1, 1]);
-      const centerY = transposed.slice([0, 1], [-1, 1]);
-      const w = transposed.slice([0, 2], [-1, 1]);
-      const h = transposed.slice([0, 3], [-1, 1]);
+    // Crop to a square for better alignment with model
+    const cropSize = Math.min(image.shape[0], image.shape[1]);
+    const beginHeight = centerHeight - cropSize / 2;
+    const beginWidth = centerWidth - cropSize / 2;
 
-      const x1 = tf.sub(centerX, tf.div(w, 2));
-      const y1 = tf.sub(centerY, tf.div(h, 2));
-      const x2 = tf.add(x1, w);
-      const y2 = tf.add(y1, h);
-
-      return tf.concat([x1, y1, x2, y2], 1);
-    });
-
-    const [scores, classes] = tf.tidy(() => {
-      const rawScores = transposed.slice([0, 4], [-1, this.config.classes.length]).squeeze();
-      return [rawScores.max(1), rawScores.argMax(1)];
-    });
-
-    const nms = await tf.image.nonMaxSuppressionAsync(
-      boxes as tf.Tensor2D,
-      scores,
-      this.config.maxDetections,
-      this.config.iouThreshHold,
-      this.config.scoreThreshHold,
+    const cropped = image.slice(
+      [beginHeight, beginWidth, 0],
+      [cropSize, cropSize, 3]
     );
 
-    const classesRaw = classes.gather(nms, 0);
-    const mask = tf
-      .tensor1d(EXCLUDE_CLASSES_INDEXES, 'int32')
-      .equal(classesRaw.reshape([-1, 1]))
-      .any(1)
-      .logicalNot();
+    // Resize to model input size and normalize
+    return cropped
+      .resizeBilinear([this.config.inputHeight, this.config.inputWidth])
+      .div(255.0)
+      .expandDims(0); // Add batch dimension
+  });
 
-    const filteredClasses = await tf.booleanMaskAsync(classesRaw, mask);
-    const indices = await tf.whereAsync(mask);
+  // Perform inference
+  const prediction: tf.Tensor = this.model!.predict(inputData as tf.Tensor) as tf.Tensor;
 
-    const boxesData = boxes.gather(nms, 0).gather(indices, 0).dataSync();
-    const classesData = filteredClasses.dataSync();
-    const scoresData = scores.gather(nms, 0).gather(indices, 0).dataSync();
+  // Process logits (output of the model)
+  const logits = prediction.squeeze(); // Remove batch dimension: [num_classes]
 
-    if (scoresData.length > 0) {
-      // const detectedClassList: string[] = []
-      // classesData.forEach((c): void => { detectedClassList.push(DATA_CLASS[c]) })
-      // this.onDetect(detectedClassList);
+  // Get top prediction
+  const topIndex = logits.argMax().dataSync()[0]; // Index of the top class
+  const topScore = logits.max().dataSync()[0]; // Confidence of the top class
+  const topClass = this.config.classes ? this.config.classes[topIndex] : `Class ${topIndex}`;
 
-      // Notify detected classes
-      const highestScore = tf.topk(scoresData, 1);
-      const highestScoreIdx = highestScore.indices;
-      const highestClass = classesData[highestScoreIdx.dataSync()[0]];
-      this.updateCount(DATA_CLASS[highestClass]);
-    }
+  console.log(`Detected: ${topClass} (Score: ${topScore.toFixed(4)})`);
 
-    renderBoxes(canvas, boxesData as Float32Array, scoresData, Array.from(classesData), [ratioX as number, ratioY as number]);
+  // Update detected object count
+  this.updateCount(topClass);
 
-    tf.dispose([prediction, transposed, boxes, scores, classes, nms]);
+  // Draw results on canvas (optional for visualization)
+  const ctx = canvas.getContext("2d")!;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.font = "16px Arial";
+  ctx.fillStyle = "red";
+  ctx.fillText(`Detected: ${topClass}`, 10, 20);
+  ctx.fillText(`Confidence: ${topScore.toFixed(4)}`, 10, 40);
 
-    callback();
+  // Call the callback function
+  await callback();
 
-    tf.engine().endScope();
-  }
+  tf.engine().endScope();
+}
 
   public async detectVideoFrame(
     source: HTMLVideoElement,
@@ -241,3 +301,4 @@ export class ObjectDetectionModel {
   }
 
 }
+
