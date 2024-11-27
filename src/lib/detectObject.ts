@@ -220,10 +220,9 @@ export class ObjectDetectionModel {
       filteredClasses, mask, indices,
       classesRaw, boxesRaw, scoresRaw,
     ]);
-
-    callback();
-
+    console.log("TOTAL: ", Date.now() - startPredictTime)
     tf.engine().endScope();
+    callback();
   }
 
   public async detectVideoFrame(
