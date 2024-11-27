@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ObjectDetectionModel } from '@/lib/detectObject';
 import React, { useEffect, useRef, useState } from 'react';
 import "./WebcamStream.css";
+import {camera, VIDEO_PIXELS} from '../lib/camera';
 
 const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> = ({
   videoPath,
@@ -34,7 +35,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
       if (videoRef.current) {
         videoRef.current.src = `${window.location.href}${videoPath}/${obName.toLowerCase()}.mp4`; // Set video source
         videoRef.current.style.display = "block";
-        camRef.current!.style.display = "none"
+        camera.camRef.current!.style.display = "none"
         videoRef.current.play();
 
         if (videoRef.current) {
@@ -42,8 +43,8 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
             if (videoRef.current) {
               videoRef.current.style.display = "none";
               videoRef.current.src = "";
-              camRef.current!.style.display = "block"
-              await startWebcam();
+              camera.camRef.current!.style.display = "block"
+              await camera.setupCamera;
             }
           };
         }
@@ -83,26 +84,26 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
     },
   };
 
-  const startWebcam = async (): Promise<void> => {
-    try {
-      const camVideoStream = await navigator.mediaDevices.getUserMedia(constraints);
-      if (camRef.current && !camRef.current.srcObject) {
-        camRef.current.srcObject = camVideoStream;
-        camRef.current.style.display = 'block';
-      }
-    } catch {
-      toast({
-        title: 'Cannot open webcam',
-        description: 'Failed to access webcam. Please ensure you have granted camera permissions.',
-        variant: 'destructive',
-      });
-    }
-  };
+  // const startWebcam = async (): Promise<void> => {
+  //   try {
+  //     const camVideoStream = await navigator.mediaDevices.getUserMedia(constraints);
+  //     if (camera.camRef.current && !camera.camRef.current.srcObject) {
+  //       camera.camRef.current.srcObject = camVideoStream;
+  //       camera.camRef.current.style.display = 'block';
+  //     }
+  //   } catch {
+  //     toast({
+  //       title: 'Cannot open webcam',
+  //       description: 'Failed to access webcam. Please ensure you have granted camera permissions.',
+  //       variant: 'destructive',
+  //     });
+  //   }
+  // };
 
   const stopWebcam = (): void => {
-    if (camRef.current && camRef.current.srcObject) {
-      (camRef.current.srcObject as MediaStream).getTracks().forEach((track) => track.stop());
-      camRef.current.srcObject = null;
+    if (camera.camRef.current && camera.camRef.current.srcObject) {
+      (camera.camRef.current.srcObject as MediaStream).getTracks().forEach((track) => track.stop());
+      camera.camRef.current.srcObject = null;
       setCamOpen(false);
     }
   };
@@ -182,11 +183,12 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
   }, [mode]);
 
   useEffect(() => {
-    startWebcam();
     model
       .load()
       .then(() => {
+        model.warmupModel();
         setLoaded(true);
+        camera.setupCamera();
       })
       .catch((e) =>
         toast({
@@ -201,8 +203,8 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
 
 
   const runDetect = () => {
-    if (isDetecting && camRef.current) {
-      model.detectVideoFrame(camRef.current, (predictions) => {
+    if (isDetecting && camera.camRef.current) {
+      model.detectVideoFrame(camera.camRef.current, (predictions) => {
         // Handle predictions, for example:
         console.log("Predictions:", predictions);
       });
@@ -282,7 +284,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
         <div className="header-right">
           <Button onClick={() => {
             setMode("Welcome")
-            startWebcam()
+            camera.setupCamera()
           }} className="control-button" disabled={isCamOpen}>
             Open Camera
           </Button>
@@ -310,7 +312,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
         {/* Video Section */}
         <div className="video-container">
           <video
-            ref={camRef}
+            ref={camera.camRef}
             autoPlay
             onPlay={runDetect}
             muted
