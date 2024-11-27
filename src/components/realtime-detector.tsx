@@ -184,7 +184,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
   useEffect(() => {
     startWebcam();
     model
-      .loadModel()
+      .load()
       .then(() => {
         setLoaded(true);
       })
@@ -201,12 +201,13 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
 
 
   const runDetect = () => {
-    console.log("DETECTING", isDetecting)
-    if (isDetecting) {
-      model.detectVideoFrame(camRef.current!, canvasRef.current!);
+    if (isDetecting && camRef.current) {
+      model.detectVideoFrame(camRef.current, (predictions) => {
+        // Handle predictions, for example:
+        console.log("Predictions:", predictions);
+      });
     }
-  }
-
+  };
   useEffect(() => {
     runDetect()
   }, [isDetecting]);
