@@ -134,11 +134,15 @@ export class ObjectDetectionModel {
     callback: () => Promise<void>,
   ) {
     tf.engine().startScope();
+    const startPredictTime = Date.now()
     const [inputData, ratioX, ratioY] = this.prepareInput(dataSource);
     const prediction: tf.Tensor = this.model!.predict(inputData as tf.Tensor) as tf.Tensor;
 
+    console.log("Predict time: ", Date.now() - startPredictTime)
     const result = prediction.squeeze();
     const transposed = result.transpose();
+
+    const startProcessOuput = Date.now()
 
     const boxes = tf.tidy(() => {
       const centerX = transposed.slice([0, 0], [-1, 1]);
@@ -159,15 +163,30 @@ export class ObjectDetectionModel {
       return [rawScores.max(1), rawScores.argMax(1)];
     });
 
+    console.log("Raw output processing: ", Date.now() - startProcessOuput)
+
+
+    const startGetTopKFromRawData = Date.now()
+    const topKScores = scores.topk(50)
+    const topScores = topKScores.values
+    const topScoreClasses = classes.gather(topKScores.indices)
+    const topScoreBoxes = boxes.gather(topKScores.indices)
+
+    console.log(topScores.shape, topScoreBoxes.shape, topScoreClasses.shape)
+    console.log("Top K from raw ouput: ", Date.now() - startGetTopKFromRawData)
+
+    const startFilterProcess = Date.now()
+
     const mask = tf
       .tensor1d(EXCLUDE_CLASSES_INDEXES, 'int32')
-      .equal(classes.reshape([-1, 1]))
+      .equal(topScoreClasses.reshape([-1, 1]))
       .any(1)
       .logicalNot();
+
     const indices = (await tf.whereAsync(mask)).squeeze();
-    const classesRaw = await tf.booleanMaskAsync(classes, mask)
-    const boxesRaw = boxes.gather(indices, 0)
-    const scoresRaw = scores.gather(indices, 0)
+    const classesRaw = await tf.booleanMaskAsync(topScoreClasses, mask)
+    const boxesRaw = topScoreBoxes.gather(indices, 0)
+    const scoresRaw = topScores.gather(indices, 0)
 
     const nms = await tf.image.nonMaxSuppressionAsync(
       boxesRaw as tf.Tensor2D,
@@ -182,21 +201,25 @@ export class ObjectDetectionModel {
     const classesData = filteredClasses.dataSync();
     const scoresData = scoresRaw.gather(nms, 0).dataSync();
 
-    if (scoresData.length > 0) {
-      // const detectedClassList: string[] = []
-      // classesData.forEach((c): void => { detectedClassList.push(DATA_CLASS[c]) })
-      // this.onDetect(detectedClassList);
+    console.log("Filter process: ", Date.now() - startFilterProcess)
 
-      // Notify detected classes
+    if (scoresData.length > 0) {
       const highestScore = tf.topk(scoresData, 1);
       const highestScoreIdx = highestScore.indices;
       const highestClass = classesData[highestScoreIdx.dataSync()[0]];
       this.updateCount(DATA_CLASS[highestClass]);
+      tf.dispose([highestScore])
     }
 
     renderBoxes(canvas, boxesData as Float32Array, scoresData, Array.from(classesData), [ratioX as number, ratioY as number]);
 
-    tf.dispose([prediction, transposed, boxes, scores, classes, nms]);
+    tf.dispose([
+      prediction, transposed, boxes,
+      scores, classes, nms, topScores,
+      topScoreBoxes, topScoreClasses, topKScores,
+      filteredClasses, mask, indices,
+      classesRaw, boxesRaw, scoresRaw,
+    ]);
 
     callback();
 
