@@ -101,22 +101,11 @@ export class ObjectDetectionModel {
       ratioX = maxSize / w;
       ratioY = maxSize / h;
 
-      // Apply brightness/contrast adjustments
-      const brightness = 1.2; // Adjust as needed
-      const contrast = 1.1;   // Adjust as needed
-      const adjustedImage = imgPadded
-        .toFloat()
-        .mul(brightness) // Increase brightness
-        .sub(127.5)      // Normalize contrast
-        .mul(contrast)   // Increase contrast
-        .add(127.5)      // Restore range
-        .clipByValue(0, 255); // Clip values to valid range
-
       // Add a batch dimension (rank-4 tensor) and flip left-right
       return tf.image
         .flipLeftRight(
           tf.image
-            .resizeBilinear(adjustedImage as tf.Tensor4D, [
+            .resizeBilinear(imgPadded as tf.Tensor4D, [
               this.config.inputWidth,
               this.config.inputHeight,
             ])
@@ -182,11 +171,6 @@ export class ObjectDetectionModel {
     const scoresData = scores.gather(nms, 0).gather(indices, 0).dataSync();
 
     if (scoresData.length > 0) {
-      // const detectedClassList: string[] = []
-      // classesData.forEach((c): void => { detectedClassList.push(DATA_CLASS[c]) })
-      // this.onDetect(detectedClassList);
-
-      // Notify detected classes
       const highestScore = tf.topk(scoresData, 1);
       const highestScoreIdx = highestScore.indices;
       const highestClass = classesData[highestScoreIdx.dataSync()[0]];
