@@ -159,27 +159,28 @@ export class ObjectDetectionModel {
       return [rawScores.max(1), rawScores.argMax(1)];
     });
 
+    const mask = tf
+      .tensor1d(EXCLUDE_CLASSES_INDEXES, 'int32')
+      .equal(classes.reshape([-1, 1]))
+      .any(1)
+      .logicalNot();
+    const indices = (await tf.whereAsync(mask)).squeeze();
+    const classesRaw = await tf.booleanMaskAsync(classes, mask)
+    const boxesRaw = boxes.gather(indices, 0)
+    const scoresRaw = scores.gather(indices, 0)
+
     const nms = await tf.image.nonMaxSuppressionAsync(
-      boxes as tf.Tensor2D,
-      scores,
+      boxesRaw as tf.Tensor2D,
+      scoresRaw as tf.Tensor1D,
       this.config.maxDetections,
       this.config.iouThreshHold,
       this.config.scoreThreshHold,
     );
 
-    const classesRaw = classes.gather(nms, 0);
-    const mask = tf
-      .tensor1d(EXCLUDE_CLASSES_INDEXES, 'int32')
-      .equal(classesRaw.reshape([-1, 1]))
-      .any(1)
-      .logicalNot();
-
-    const filteredClasses = await tf.booleanMaskAsync(classesRaw, mask);
-    const indices = await tf.whereAsync(mask);
-
-    const boxesData = boxes.gather(nms, 0).gather(indices, 0).dataSync();
+    const filteredClasses = classesRaw.gather(nms, 0);
+    const boxesData = boxesRaw.gather(nms, 0).dataSync();
     const classesData = filteredClasses.dataSync();
-    const scoresData = scores.gather(nms, 0).gather(indices, 0).dataSync();
+    const scoresData = scoresRaw.gather(nms, 0).dataSync();
 
     if (scoresData.length > 0) {
       // const detectedClassList: string[] = []
