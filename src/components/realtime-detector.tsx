@@ -205,9 +205,8 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
   const runDetect = () => {
     if (isDetecting && camera.camRef.current) {
       model.detectVideoFrame(camera.camRef.current, (predictions) => {
-        // Handle predictions, for example:
-        console.log("Predictions:", predictions);
-      });
+        console.log('Predictions:', predictions);
+      }, 2000);
     }
   };
   useEffect(() => {

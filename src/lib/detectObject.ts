@@ -16,7 +16,7 @@ export interface ModelConfig {
 
 export class ObjectDetectionModel {
 
-  private model: tf.GraphModel | null;
+  private model: tf.LayersModel | null;
   public readonly config: Required<ModelConfig>;
   private detectedCount: Map<string, number> = new Map();
   private maxCount: number = 0;
@@ -37,7 +37,7 @@ export class ObjectDetectionModel {
    * Load the frozen model
    */
   async load(): Promise<void> {
-    this.model = await tf.loadGraphModel(this.config.modelPath);
+    this.model = await tf.loadLayersModel(this.config.modelPath);
     console.log("Model loaded successfully");
   }
 
@@ -118,26 +118,33 @@ export class ObjectDetectionModel {
   /**
    * Continuously process video frames and call the callback with predictions
    */
-  async detectVideoFrame(videoElement: HTMLVideoElement, callback: (result: any) => void) {
+  async detectVideoFrame(videoElement: HTMLVideoElement, callback: (result: any) => void, interval: number = 1000) {
+    // Process frames at a given interval (in milliseconds)
     const processFrame = async () => {
       if (!videoElement || videoElement.videoWidth === 0) {
         return; // Skip processing if the video is not ready
       }
-
+  
+      // Capture the current frame from the video
       const predictions = await this.detect(videoElement);
-
-      // Log the object with the highest score
+  
+      // If there are predictions, log the highest score object
       if (predictions.length > 0) {
         const highestScore = predictions[0]; // The first item is the highest
         console.log("Highest Score Object:", highestScore.label, "with score:", highestScore.value);
       }
-
+  
+      // Invoke the callback with the predictions
       callback(predictions);
-
-      // Continue processing on the next animation frame
-      requestAnimationFrame(processFrame);
     };
-
-    processFrame(); // Start the frame processing
+  
+    // Set an interval to call the processFrame function
+    const intervalId = setInterval(() => {
+      processFrame();
+    }, interval); // Call processFrame every 'interval' milliseconds
+  
+    // Optionally, stop the interval after a certain period or under a condition
+    // You can clear this interval manually using clearInterval(intervalId) when needed.
   }
+  
 }
