@@ -1,8 +1,8 @@
-import * as tf from "@tensorflow/tfjs";
-import { SCAVENGER_CLASSES } from "../constants/gg_classes";
+import * as tf from '@tensorflow/tfjs';
+import { SCAVENGER_CLASSES } from '../constants/gg_classes';
 
 const PREPROCESS_DIVISOR = tf.scalar(255 / 2);
-const VIDEO_PIXELS = 224; // Assumes the model expects 224x224 input size
+const VIDEO_PIXELS = 224; // Model input size (224x224)
 
 export interface ModelConfig {
   modelPath: string;
@@ -42,7 +42,32 @@ export class ObjectDetectionModel {
   }
 
   /**
-   * Warm up the model to ensure tensors are initialized
+   * Preprocess the video frame for prediction
+   */
+  private preprocessInput(videoElement: HTMLVideoElement): tf.Tensor {
+    return tf.tidy(() => {
+      // Get the pixels from the video element
+      const pixels = tf.browser.fromPixels(videoElement);
+  
+      // Normalize the pixel values to the range [0, 1] and cast to float32
+      const normalizedPixels = pixels.div(255).cast('float32');
+  
+      // Calculate the center of the video and cropping indices
+      const centerHeight = Math.floor(normalizedPixels.shape[0] / 2);
+      const beginHeight = Math.floor(centerHeight - (VIDEO_PIXELS / 2));
+      const centerWidth = Math.floor(normalizedPixels.shape[1] / 2);
+      const beginWidth = Math.floor(centerWidth - (VIDEO_PIXELS / 2));
+  
+      // Crop the pixels based on calculated indices
+      const pixelsCropped = normalizedPixels.slice([beginHeight, beginWidth, 0], [VIDEO_PIXELS, VIDEO_PIXELS, 3]);
+  
+      // Return the cropped and normalized pixels
+      return pixelsCropped;
+    });
+  }
+
+  /**
+   * Warm up the model by running a dummy input
    */
   warmupModel(): void {
     const dummyInput = tf.ones([1, VIDEO_PIXELS, VIDEO_PIXELS, 3]);
@@ -51,52 +76,11 @@ export class ObjectDetectionModel {
   }
 
   /**
-   * Dispose of the model and any associated resources
-   */
-  dispose(): void {
-    if (this.model) {
-      this.model.dispose();
-    }
-  }
-
-  /**
-   * Preprocess the video frame for prediction
-   */
-  private preprocessInput(videoElement: HTMLVideoElement): tf.Tensor {
-    return tf.tidy(() => {
-      const pixels = tf.browser.fromPixels(videoElement);
-
-      // Crop the center of the video frame
-      const centerHeight = pixels.shape[0] / 2;
-      const beginHeight = centerHeight - VIDEO_PIXELS / 2;
-      const centerWidth = pixels.shape[1] / 2;
-      const beginWidth = centerWidth - VIDEO_PIXELS / 2;
-
-      const cropped = pixels.slice(
-        [beginHeight, beginWidth, 0],
-        [VIDEO_PIXELS, VIDEO_PIXELS, 3]
-      );
-
-      // Normalize to match the model's expected range [-1, 1]
-      return cropped
-        .toFloat()
-        .div(PREPROCESS_DIVISOR)
-        .sub(1.0)
-        .expandDims(0); // Add batch dimension
-    });
-  }
-
-  /**
-   * Predict the class probabilities for the input tensor using a GraphModel
+   * Predict the class probabilities for the input tensor
    */
   predict(input: tf.Tensor): tf.Tensor1D {
-    // Ensure the input tensor is reshaped to match the model's expected input
     const reshapedInput = input.reshape([1, this.config.inputHeight, this.config.inputWidth, 3]);
-
-    // Use the built-in `predict` method of `GraphModel`
     const prediction = this.model!.predict(reshapedInput) as tf.Tensor;
-
-    // If the output is not a 1D tensor, squeeze it to remove unnecessary dimensions
     return prediction.squeeze() as tf.Tensor1D;
   }
 
@@ -125,7 +109,7 @@ export class ObjectDetectionModel {
     return tf.tidy(() => {
       const inputTensor = this.preprocessInput(videoElement);
       const prediction = this.predict(inputTensor);
-      const topK = this.getTopKClasses(prediction, 5); // Get top 5 classes
+      const topK = this.getTopKClasses(prediction, 5); // Get top 5 predictions
       tf.dispose([inputTensor, prediction]);
       return topK;
     });
