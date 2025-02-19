@@ -1,6 +1,6 @@
 
 
-export const MODEL_FILE_PATH = "model_yolov8n_js/model.json"
+export const MODEL_FILE_PATH = "yolo_tfjs/model.json"
 
 
 

@@ -718,7 +718,12 @@ export const DATA_CLASS = [
   "scissors",
   "teddy bear",
   "hair drier",
-  "toothbrush"
+  "toothbrush",
+  "angry",
+  "kissy",
+  "happy",
+  "skull",
+  "crying",
 ];
 
 export const EXCLUDE_CLASSES = [
@@ -729,10 +734,14 @@ export const EXCLUDE_CLASSES_INDEXES = [0]
 export const INCLUDE_CLASSES = [
   "backpack", "book", "bowl", "fork", "laptop", "pen", "sandwich",
   "television", "banana", "bottle", "cell phone", "knife", "orange",
-  "plant", "scissors",
+  "plant", "scissors", "angry",
+  "kissy",
+  "happy",
+  "skull",
+  "crying",
 ];
 export const INCLUDE_CLASSES_INDEXES = [
-  24, 73, 45, 42, 63, 66, 48, 62, 46, 39, 67, 43, 49, 58, 76
+  24, 73, 45, 42, 63, 66, 48, 62, 46, 39, 67, 43, 49, 58, 76, 80, 81, 82, 83, 84
 ];
 const keys = new Map()
 for (let i = 0; i < DATA_CLASS.length; i++) {

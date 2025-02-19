@@ -1,5 +1,5 @@
 
-import { DATA_CLASS, EXCLUDE_CLASSES_INDEXES, INCLUDE_CLASSES } from "@/constants/classes";
+import { DATA_CLASS, EXCLUDE_CLASSES_INDEXES } from "@/constants/classes";
 import * as tf from "@tensorflow/tfjs";
 import { renderBoxes } from "./boxRender";
 
@@ -24,19 +24,12 @@ export class ObjectDetectionModel {
   constructor(
     config: Required<ModelConfig>,
     maxCount: number = 20,
-    // mainClasses: string[] = INCLUDE_CLASSES,
     callback: (obName: string) => Promise<void>,
-    // onDetect: (classes: string[]) => void
   ) {
     this.config = config;
     this.model = null;
     this.maxCount = maxCount;
     this.onRate = callback;
-    // this.onDetect = onDetect; // Store onDetect callback
-
-    // for (const c of mainClasses) {
-    //   this.detectedCount.set(c.toLowerCase(), 0);
-    // }
   }
 
   private warmupModel(): void {
