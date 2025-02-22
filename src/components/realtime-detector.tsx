@@ -362,9 +362,9 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
       {
         inputWidth: 640,
         inputHeight: 640,
-        maxDetections: 50,
-        iouThreshHold: 0.4,
-        scoreThreshHold: 0.6,
+        maxDetections: 100,
+        iouThreshHold: 0.9,
+        scoreThreshHold: 0.4,
         classes: DATA_CLASS,
         modelPath: MODEL_FILE_PATH,
       },
