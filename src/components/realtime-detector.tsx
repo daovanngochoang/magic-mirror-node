@@ -335,7 +335,12 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
   const timerRef = useRef<NodeJS.Timeout | null>(null); // Timer reference to clear interval
 
   const showVideo = async (obName: string) => {
-    if (INCLUDE_CLASSES.includes(obName)) {
+    if (INCLUDE_CLASSES.includes(obName) && !["angry",
+      "kissy",
+      "happy",
+      "skull",
+      "crying",
+    ].includes(obName)) {
       stopWebcam(); // Stop the webcam
       if (videoRef.current) {
         videoRef.current.src = `${window.location.href}${videoPath}/${obName.toLowerCase()}.mp4`; // Set video source
@@ -507,11 +512,11 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
 
 
   const runDetect = () => {
-        console.log("DETECTING", isDetecting)
-        if (isDetecting) {
-          model.detectVideoFrame(camRef.current!, canvasRef.current!);
-        }
-      }
+    console.log("DETECTING", isDetecting)
+    if (isDetecting) {
+      model.detectVideoFrame(camRef.current!, canvasRef.current!);
+    }
+  }
   useEffect(() => {
     runDetect()
   }, [isDetecting]);
@@ -618,7 +623,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
             autoPlay
             onPlay={runDetect}
             muted
-            playsInline 
+            playsInline
             disablePictureInPicture
             className="video-feed"
           />
@@ -626,7 +631,7 @@ const WebcamStream: React.FC<{ initiallyActive?: boolean; videoPath?: string }> 
             ref={videoRef}
             autoPlay
             muted
-            playsInline 
+            playsInline
             disablePictureInPicture
             style={{ display: 'none' }}
             className="video-feed"
